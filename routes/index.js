@@ -7,6 +7,7 @@ var authRouter = require('./auth');
 var surveyRouter = require('./survey');
 var categoryRouter = require('./category');
 var resultRouter = require('./result');
+var userRouter = require('./user');
 
 require('dotenv').config();
 
@@ -30,5 +31,6 @@ router.use('/auth', authRouter);
 router.use('/survey', surveyRouter);
 router.use('/category', categoryRouter);
 router.use('/result', resultRouter);
+router.use('/user', userRouter);
 
 module.exports = router;

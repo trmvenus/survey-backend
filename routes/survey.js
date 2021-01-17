@@ -1,5 +1,5 @@
 var express = require('express');
-var {createSurvey, getMySurveys, getSurvey, updateSurvey, deleteSurveys, copySurveys} = require('../database/surveys');
+var {createSurvey, getMySurveys, getSurvey, updateSurvey, deleteSurveys, copySurveys, shareSurvey} = require('../database/surveys');
 var {copyResultsBySurvey} = require('../database/results');
 
 var router = express.Router();
@@ -160,12 +160,28 @@ const copySurveysProc = (req, res, next) => {
   }
 }
 
+const shareSurveyProc = (req, res, next) => {
+  const survey_id = req.query.id;
+  shareSurvey(survey_id)
+    .then(survey => {
+      res.status(200).json(survey);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "survey/wrong-survey-id",
+        message: "It couldn't share/unshare survey."
+      })
+    })
+}
+
+router.post('/copy', copySurveysProc);
+router.get('/share', shareSurveyProc);
+router.get('/:id', getSurveyProc);
+router.put('/:id', updateSurveyProc);
 router.get('/', getSurveyListProc);
 router.post('/', addSurveyProc);
 router.delete('/', deleteSurveysProc);
-router.get('/:id', getSurveyProc);
-router.put('/:id', updateSurveyProc);
-router.post('/copy', copySurveysProc);
 
 
 module.exports = router;

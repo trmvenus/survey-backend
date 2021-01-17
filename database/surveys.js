@@ -74,6 +74,17 @@ const copySurveys = async (user_id, surveys_ids) => {
     return [];
 }
 
+const shareSurvey = async (survey_id) => {
+  const results = await pool.query(`
+    UPDATE surveys SET is_share = NOT is_share WHERE id = $1 RETURNING id
+  `, [survey_id]);
+
+  if (results.rows && results.rows.length > 0)
+    return results.rows[0];
+  else
+    return null;
+}
+
 module.exports = {
     createSurvey,
     getMySurveys,
@@ -81,4 +92,5 @@ module.exports = {
     updateSurvey,
     deleteSurveys,
     copySurveys,
+    shareSurvey,
 };
