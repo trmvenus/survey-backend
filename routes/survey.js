@@ -1,6 +1,6 @@
 var express = require('express');
 var {createSurvey, getMySurveys, getSurvey, updateSurvey, deleteSurveys, copySurveys, shareSurvey} = require('../database/surveys');
-var {copyResultsBySurvey} = require('../database/results');
+var {copyResultsBySurvey, getResultDatesBySurvey} = require('../database/results');
 
 var router = express.Router();
 
@@ -78,7 +78,18 @@ const getSurveyProc = (req, res, next) => {
           message: "This survey was deleted.",
         });
       } else {
-        res.status(200).json(survey);
+        getResultDatesBySurvey(survey_id)
+          .then(results => {
+            survey.results = results;
+            res.status(200).json(survey);
+          })
+          .catch(err => {
+            console.log(err);
+            res.status(500).json({
+              code: "result/get-listerror",
+              message: "It couldn't fetch the survey.",
+            });
+          })
       }
     })
     .catch(err => {

@@ -37,7 +37,11 @@ const getMySurveys = async (user_id) => {
 
 const getSurvey = async (survey_id) => {
   const results = await pool.query(`
-    SELECT * FROM surveys WHERE id=$1
+    SELECT 
+      * 
+      , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id) AS responses
+      , (SELECT AVG(results.time_spent) FROM results WHERE surveys.id = results.survey_id) AS average_time
+    FROM surveys WHERE id=$1
     `, [survey_id]);
   if (results.rows && results.rows.length > 0)
     return results.rows[0];

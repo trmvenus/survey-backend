@@ -5,12 +5,12 @@ const signInWithEmailAndPassword = async (email, password) => {
     return results.rows;
 }
 
-const createUserWithEmailAndPassword = async (name, email, password) => {
+const createUserWithEmailAndPassword = async (name, email, password, role=1, ) => {
     var results = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
     if (results.rows.length > 0) {
         return {success: false};
     } else {
-        results = await pool.query('INSERT INTO users(name, email, password) VALUES ($1, $2, $3) RETURNING *', [name, email, password]);
+        results = await pool.query('INSERT INTO users(name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *', [name, email, password, role]);
         return {success: true, rows: results.rows };
     }
 }

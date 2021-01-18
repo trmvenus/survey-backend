@@ -20,6 +20,25 @@ const getResultsBySurvey = async (survey_id) => {
       return [];
 }
 
+const getResultDatesBySurvey = async (survey_id) => {
+  const results = 
+    await pool.query(`
+      SELECT 
+        TO_CHAR(created_at, 'YYYY-MM-DD') AS created_at
+      FROM
+        results 
+      WHERE 
+        survey_id=$1
+      ORDER BY
+        id DESC
+    `, [survey_id]);
+
+    if (results.rows && results.rows.length > 0)
+      return results.rows;
+    else
+      return [];
+}
+
 const getUncompletedResultBySurveyAndUser = async (survey_id, user_id) => {
   const results = 
     await pool.query(`
@@ -87,6 +106,7 @@ const copyResultsBySurvey = async (old_survey_id, new_survey_id) => {
 
 module.exports = {
   getResultsBySurvey,
+  getResultDatesBySurvey,
   getUncompletedResultBySurveyAndUser,
   postResult,
   updateResult,

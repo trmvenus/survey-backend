@@ -1,5 +1,6 @@
+const { response } = require('express');
 var express = require('express');
-var {getUsersWithFilter, getCountOfUsers, updateUserPermission, activateUser} = require('../database/users');
+var {getUsersWithFilter, getCountOfUsers, updateUserPermission, activateUser, createUserWithEmailAndPassword} = require('../database/users');
 
 var router = express.Router();
 
@@ -12,7 +13,7 @@ const getUsersProc = (req, res, next) => {
         .then(count => {
           res.json({
             data: users,
-            totalItem: count,
+            totalCount: count,
             totalPage: (count-1)/pageSize+1,
           });
         })
@@ -66,8 +67,33 @@ const activateUserProc = (req, res, next) => {
     })
 }
 
+const addUserProc = (req, res, next) => {
+  const {name, email, password, role} = req.body;
+
+  createUserWithEmailAndPassword(name, email, password, role)
+    .then(result => {
+      if (result.success == true) {
+        var user = result.rows[0];
+        res.status(200).json(user);
+      } else {
+        res.status(500).json({
+          code: "auth/duplicated-email",
+          message: "The same email exists.",
+        });
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "auth/create-user-error",
+        message: "It couldn't create new user.",
+      });
+    });
+}
+
 router.put('/permission', updatePermissionProc);
 router.put('/:id/active', activateUserProc);
 router.get('/', getUsersProc);
+router.post('/', addUserProc);
 
 module.exports = router;
