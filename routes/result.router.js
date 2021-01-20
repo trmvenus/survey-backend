@@ -1,5 +1,5 @@
 var express = require('express');
-var { getResultsBySurvey, getUncompletedResultBySurveyAndUser, postResult, updateResult } = require('../database/results');
+var { getResultsBySurvey, getUncompletedResultBySurveyAndUser, postResult, updateResult, getResultById } = require('../database/results');
 
 var router = express.Router();
 
@@ -17,6 +17,21 @@ const getResultListProc = (req, res, next) => {
         message: "It couldn't fetch all surveys.",
       });
     });
+}
+
+const getResultByIdProc = (req, res, next) => {
+  const result_id = req.params.id;
+  getResultById(result_id)
+    .then(result => {
+      res.json(result);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "result/get-result-error",
+        message: "It couldn't get the result."
+      });
+    })
 }
 
 const getResultProc = (req, res, next) => {
@@ -47,7 +62,7 @@ const getResultProc = (req, res, next) => {
       res.status(500).json({
         code: "result/get-uncompleted-error",
         message: "It couldn't get the result."
-      })
+      });
     })
 }
 
@@ -68,6 +83,7 @@ const updateResultProc = (req, res, next) => {
 };
 
 router.get('/list', getResultListProc);
+router.get('/:id', getResultByIdProc);
 router.get('/', getResultProc);
 router.put('/', updateResultProc);
 

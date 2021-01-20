@@ -1,13 +1,13 @@
 const pool = require('./pool');
 
-const getResultsBySurvey = async (survey_id) => {
+const getReportsBySurvey = async (survey_id) => {
   const results = 
     await pool.query(`
       SELECT 
         *,
-        (SELECT name FROM users WHERE results.user_id=users.id) as username
+        (SELECT name FROM users WHERE reports.user_id=users.id) as username
       FROM
-        results 
+        reports 
       WHERE 
         survey_id=$1
       ORDER BY
@@ -39,49 +39,26 @@ const getResultDatesBySurvey = async (survey_id) => {
       return [];
 }
 
-const getResultById = async (result_id) => {
-  const results = 
-    await pool.query(`
-    SELECT * FROM results WHERE id=$1
-    `, [result_id]);
-
-  if (results.rows && results.rows.length > 0)
-    return results.rows[0];
-  else {
-    return null;
-  }
-}
-
-const getUncompletedResultBySurveyAndUser = async (survey_id, user_id) => {
-  const results = 
-    await pool.query(`
-      SELECT
-        *
-      FROM
-        results
-      WHERE
-        survey_id=$1 AND user_id=$2 AND is_completed=false
-    `, [survey_id, user_id]);
-
-  if (results.rows && results.rows.length > 0)
-    return results.rows[0];
-  else {
-    return null;
-  }
-}
-
-const postResult = async (survey_id, user_id, ip_address) => {
+const createReport = async (name, survey_id, user_id, type, filter, sections) => {
   const results = 
     await pool.query(`
       INSERT INTO 
-        results
-        (json, survey_id, user_id, time_spent, ip_address)
+        reports
+        (name, survey_id, user_id, type, filter, sections)
       VALUES
-        ('{}', $1, $2, 0, $3) 
-      RETURNING *`, [survey_id, user_id, ip_address]);
+        ($1, $2, $3, $4, $5, $6) 
+      RETURNING *`, [name, survey_id, user_id, type, filter, sections]);
 
-  if (results.rows && results.rows.length > 0)
-    return results.rows[0];
+  if (results.rows && results.rows.length > 0) {
+    const report = results.rows[0];
+    const user = await pool.query(`SELECT name FROM users WHERE id=$1`, [report.user_id]);
+    if (user.rows && user.rows.length > 0) {
+      report.username = user.rows[0].name;
+      return report;
+    } else {
+      return null;
+    }
+  }
   else
     return null;
 }
@@ -118,11 +95,6 @@ const copyResultsBySurvey = async (old_survey_id, new_survey_id) => {
 }
 
 module.exports = {
-  getResultsBySurvey,
-  getResultDatesBySurvey,
-  getResultById,
-  getUncompletedResultBySurveyAndUser,
-  postResult,
-  updateResult,
-  copyResultsBySurvey
+  getReportsBySurvey,
+  createReport,
 };
