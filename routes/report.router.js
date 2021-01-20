@@ -1,5 +1,5 @@
 var express = require('express');
-const { REPORT_TYPE } = require('../../frontend/src/constants/surveyValues');
+var { REPORT_TYPE } = require('../constants/surveyValue');
 var {createReport, getReportsBySurvey} = require('../database/reports');
 
 var router = express.Router();

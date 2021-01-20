@@ -1,8 +1,12 @@
 
-export const REPORT_TYPE = {
+const REPORT_TYPE = {
   SUMMARY: 'summary',
   CROSS_TAB: 'cross-tab',
   OPEN_END: 'open-end',
   PILLAR: 'pillar',
   QUESTION_SCORE: 'question-score',
 };
+
+module.exports = {
+  REPORT_TYPE,
+}
