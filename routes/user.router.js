@@ -1,6 +1,13 @@
-const { response } = require('express');
 var express = require('express');
-var {getUsersWithFilter, getCountOfUsers, updateUserPermission, activateUser, createUserWithEmailAndPassword} = require('../database/users');
+var {
+  getUsersWithFilter, 
+  getCountOfUsers, 
+  updateUserPermission, 
+  updateUserOrganization,
+  activateUser, 
+  createUserWithEmailAndPassword, 
+  deleteUsers,
+} = require('../database/users');
 
 var router = express.Router();
 
@@ -77,7 +84,7 @@ const addUserProc = (req, res, next) => {
         res.status(200).json(user);
       } else {
         res.status(500).json({
-          code: "auth/duplicated-email",
+          code: "users/duplicated-email",
           message: "The same email exists.",
         });
       }
@@ -85,15 +92,55 @@ const addUserProc = (req, res, next) => {
     .catch(err => {
       console.log(err);
       res.status(500).json({
-        code: "auth/create-user-error",
+        code: "users/create-user-error",
         message: "It couldn't create new user.",
       });
     });
 }
 
+const deleteUsersProc = (req, res, next) => {
+  const ids = req.body.ids;
+
+  if (ids.length == 0) {
+    res.status(200).json([]);
+  } else {
+    deleteUsers(ids)
+      .then(deletedUsers => {
+        res.status(200).json(deletedUsers)
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(500).json({
+          code: "users/delete-error",
+          message: "It couldn't delete users.",
+        });
+      });
+  }
+}
+
+const changeOrganizationProc = (req, res, next) => {
+  const user_id = req.params.id;
+  const {organization_id} = req.body;
+
+  updateUserOrganization(user_id, organization_id)
+    .then(user => {
+      if (user) {
+        res.json(user);
+      } else {
+        console.log(err);
+        res.status(500).json({
+          code: "users/change-organization-error",
+          message: "It couldn't change the organization.",
+        });
+      }
+    })
+}
+
 router.put('/permission', updatePermissionProc);
 router.put('/:id/active', activateUserProc);
+router.put('/:id/organization', changeOrganizationProc);
 router.get('/', getUsersProc);
 router.post('/', addUserProc);
+router.delete('/', deleteUsersProc);
 
 module.exports = router;

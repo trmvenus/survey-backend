@@ -9,7 +9,7 @@ const getReportsBySurvey = async (survey_id) => {
       FROM
         reports 
       WHERE 
-        survey_id=$1
+        survey_id=$1 AND is_deleted=false
       ORDER BY
         id DESC
     `, [survey_id]);
@@ -20,21 +20,36 @@ const getReportsBySurvey = async (survey_id) => {
       return [];
 }
 
-const getResultDatesBySurvey = async (survey_id) => {
+const getReportById = async (report_id) => {
   const results = 
     await pool.query(`
       SELECT 
-        TO_CHAR(created_at, 'YYYY-MM-DD') AS created_at
+        *
       FROM
-        results 
+        reports
       WHERE 
-        survey_id=$1
-      ORDER BY
-        id DESC
-    `, [survey_id]);
+        id=$1 AND is_deleted=false
+    `, [report_id]);
 
     if (results.rows && results.rows.length > 0)
-      return results.rows;
+      return results.rows[0];
+    else
+      return [];
+}
+
+const getReportByShareId = async (share_id) => {
+  const results = 
+    await pool.query(`
+      SELECT 
+        *
+      FROM
+        reports
+      WHERE 
+        share_id=$1 AND is_deleted=false
+    `, [share_id]);
+
+    if (results.rows && results.rows.length > 0)
+      return results.rows[0];
     else
       return [];
 }
@@ -63,16 +78,20 @@ const createReport = async (name, survey_id, user_id, type, filter, sections) =>
     return null;
 }
 
-const updateResult = async (id, json, time_spent, ip_address, is_completed) => {
+const deleteReport = async (report_id) => {
   const results = 
-    await pool.query(`
-      UPDATE 
-        results
-      SET
-        json=$2, time_spent=$3, ip_address=$4, is_completed=$5, updated_at=now()
-      WHERE
-        id=$1
-      RETURNING *`, [id, json, time_spent, ip_address, is_completed]);
+    await pool.query(`UPDATE reports SET is_deleted=true WHERE id = $1`, [report_id]);
+
+  if (results.rowCount > 0) {
+    return report_id;
+  }
+  else
+    return null;
+}
+
+const updateReportFilter = async (id, filter) => {
+  const results = 
+    await pool.query(`UPDATE reports SET filter=$2 WHERE id=$1 RETURNING *`, [id, filter]);
 
   if (results.rows && results.rows.length > 0)
     return results.rows[0];
@@ -80,21 +99,33 @@ const updateResult = async (id, json, time_spent, ip_address, is_completed) => {
     return null;
 }
 
-const copyResultsBySurvey = async (old_survey_id, new_survey_id) => {
-  const results = await pool.query(`
-    INSERT INTO results (json, survey_id, user_id, time_spent, ip_address, is_completed, created_at, updated_at)
-      SELECT json, $1, user_id, time_spent, ip_address, is_completed, created_at, updated_at
-      FROM results AS old
-      WHERE old.survey_id = $2
-    RETURNING *
-  `, [new_survey_id, old_survey_id]);
+const updateReportSections = async (id, sections) => {
+  const results = 
+    await pool.query(`UPDATE reports SET sections=$2 WHERE id=$1 RETURNING *`, [id, sections]);
+
   if (results.rows && results.rows.length > 0)
-    return results.rows;
+    return results.rows[0];
   else
-    return [];
+    return null;
+}
+
+const resetReportShareLink = async (id) => {
+  const results = 
+    await pool.query(`UPDATE reports SET share_id=uuid_generate_v1() WHERE id=$1 RETURNING share_id`, [id]);
+
+  if (results.rows && results.rows.length > 0)
+    return results.rows[0];
+  else
+    return null;
 }
 
 module.exports = {
   getReportsBySurvey,
+  getReportById,
+  getReportByShareId,
   createReport,
+  deleteReport,
+  updateReportFilter,
+  updateReportSections,
+  resetReportShareLink,
 };

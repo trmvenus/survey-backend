@@ -1,5 +1,5 @@
 var express = require('express');
-var {createSurvey, getMySurveys, getSurvey, updateSurvey, deleteSurveys, copySurveys, shareSurvey} = require('../database/surveys');
+var {createSurvey, getMySurveys, getSurveyById, updateSurvey, deleteSurveys, copySurveys, shareSurvey} = require('../database/surveys');
 var {copyResultsBySurvey, getResultDatesBySurvey} = require('../database/results');
 
 var router = express.Router();
@@ -70,7 +70,7 @@ const deleteSurveysProc = (req, res, next) => {
 const getSurveyProc = (req, res, next) => {
   const survey_id = req.params.id;
 
-  getSurvey(survey_id)
+  getSurveyById(survey_id)
     .then(survey => {
       if (survey.is_deleted) {
         res.status(500).json({
@@ -100,6 +100,12 @@ const getSurveyProc = (req, res, next) => {
       });
     });
 };
+
+const getSurveyByShareProc = (req, res, next) => {
+  const share_id = req.query.id;
+
+  
+}
 
 const updateSurveyProc = (req, res, next) => {
   const survey_id = req.params.id;
@@ -172,7 +178,7 @@ const copySurveysProc = (req, res, next) => {
 }
 
 const shareSurveyProc = (req, res, next) => {
-  const survey_id = req.query.id;
+  const survey_id = req.params.id;
   shareSurvey(survey_id)
     .then(survey => {
       res.status(200).json(survey);
@@ -187,7 +193,8 @@ const shareSurveyProc = (req, res, next) => {
 }
 
 router.post('/copy', copySurveysProc);
-router.get('/share', shareSurveyProc);
+router.get('/share', getSurveyByShareProc);
+router.get('/:id/share', shareSurveyProc);
 router.get('/:id', getSurveyProc);
 router.put('/:id', updateSurveyProc);
 router.get('/', getSurveyListProc);

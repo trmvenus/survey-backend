@@ -1,19 +1,22 @@
-var express = require('express');
-var jwt = require('jsonwebtoken');
+const express = require('express');
+const jwt = require('jsonwebtoken');
 
-var { verify } = require('../core/verify-token');
+const { verify } = require('../core/verify-token');
 
-var authRouter = require('./auth.router');
-var surveyRouter = require('./survey.router');
-var categoryRouter = require('./category.router');
-var resultRouter = require('./result.router');
-var reportRouter = require('./report.router');
-var userRouter = require('./user.router');
-var pillarRouter = require('./pillar.router');
+const authRouter = require('./auth.router');
+const surveyRouter = require('./survey.router');
+const categoryRouter = require('./category.router');
+const resultRouter = require('./result.router');
+const reportRouter = require('./report.router');
+const weblinkRouter = require('./weblink.router');
+const emaillinkRouter = require('./emaillink.router');
+const userRouter = require('./user.router');
+const organizationRouter = require('./organization.router');
+const pillarRouter = require('./pillar.router');
 
 require('dotenv').config();
 
-var router = express.Router();
+const router = express.Router();
 
 // Token verfication middleware
 router.use((req, res, next) => {
@@ -34,7 +37,10 @@ router.use('/survey', surveyRouter);
 router.use('/category', categoryRouter);
 router.use('/result', resultRouter);
 router.use('/report', reportRouter);
+router.use('/link/web', weblinkRouter);
+router.use('/link/email', emaillinkRouter);
 router.use('/user', userRouter);
+router.use('/organization', organizationRouter);
 router.use('/pillar', pillarRouter);
 
 module.exports = router;

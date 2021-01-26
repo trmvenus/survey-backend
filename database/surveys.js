@@ -35,11 +35,14 @@ const getMySurveys = async (user_id) => {
     return [];
 }
 
-const getSurvey = async (survey_id) => {
+const getSurveyById = async (survey_id) => {
   const results = await pool.query(`
     SELECT 
       * 
       , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id) AS responses
+      , (SELECT count(reports.id) FROM reports WHERE surveys.id = reports.survey_id) AS reports
+      , (SELECT count(weblinks.id) FROM weblinks WHERE surveys.id = weblinks.survey_id) AS weblinks
+      , (SELECT count(emaillinks.id) FROM emaillinks WHERE surveys.id = emaillinks.survey_id) AS emaillinks
       , (SELECT AVG(results.time_spent) FROM results WHERE surveys.id = results.survey_id) AS average_time
     FROM surveys WHERE id=$1
     `, [survey_id]);
@@ -92,7 +95,7 @@ const shareSurvey = async (survey_id) => {
 module.exports = {
     createSurvey,
     getMySurveys,
-    getSurvey,
+    getSurveyById,
     updateSurvey,
     deleteSurveys,
     copySurveys,

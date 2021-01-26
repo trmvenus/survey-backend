@@ -46,6 +46,7 @@ const getResultProc = (req, res, next) => {
       } else {
         postResult(survey_id, user_id, ip_address)
           .then(result => {
+            console.log(result);
             res.status(200).json(result);
           })
           .catch(err => {
