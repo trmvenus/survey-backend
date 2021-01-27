@@ -1,12 +1,20 @@
-var express = require('express');
-var {signInWithEmailAndPassword, createUserWithEmailAndPassword} = require('../database/users');
-var jwt = require('jsonwebtoken');
+const express = require('express');
+const jwt = require('jsonwebtoken');
+
+const {
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  getUserByEmail
+} = require('../database/users');
+const forgotPasswordEmail = require('../mail-template/forgot-password');
+const crypt = require('../core/encryption');
+const { sendMail } = require('../core/mailer');
 
 require('dotenv').config();
 
 var router = express.Router();
 
-router.get('/login', (req, res, next) => {
+const loginUserProc = (req, res, next) => {
   const {email, password} = req.query;
 
   signInWithEmailAndPassword(email, password)
@@ -50,9 +58,9 @@ router.get('/login', (req, res, next) => {
         message: "It couldn't login user with this credential.",
       });
     });
-});
+}
 
-router.post('/signup', (req, res, next) => {
+const registerUserProc = (req, res, next) => {
   const {name, email, password} = req.body;
 
   createUserWithEmailAndPassword(name, email, password)
@@ -96,6 +104,44 @@ router.post('/signup', (req, res, next) => {
         message: "It couldn't create new user.",
       });
     });
-});
+};
+
+const forgotPasswordProc = (req, res, next) => {
+  const {email} = req.body;
+
+  getUserByEmail(email)
+  .then(async user => {
+    if (user) {
+      const resetPasswordLink = process.env.FRONTEND_URL + `/user/reset-password?token=` + crypt.encrypt(user.email_address);
+
+      var mailOptions = {
+        from: 'SurveyWizardSite <noreply@surveywizardsite.com>',
+        to: email_address,
+        subject: 'Survey Link',
+        html: forgotPasswordEmail(user.name, resetPasswordLink)
+      };
+
+      await sendMail(mailOptions);
+
+      res.status(200).json(true);
+    } else {
+      res.status(401).json({
+        code: "auth/not-found-email",
+        message: "Your email is not registered."
+      });
+    }
+  })
+  .catch(err => {
+    console.log(err);
+    res.status(401).json({
+      code: "auth/get-user-error",
+      message: "Your email is not registered."
+    });
+  })
+}
+
+router.get('/login', loginUserProc);
+router.post('/signup', registerUserProc);
+router.post('/forgotpassword', forgotPasswordProc);
 
 module.exports = router;

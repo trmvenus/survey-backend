@@ -19,6 +19,16 @@ const getWebLinksBySurvey = async (survey_id) => {
       return [];
 }
 
+const getWebLinkByLinkId = async (link_id) => {
+  const results = 
+    await pool.query(`SELECT * FROM weblinks WHERE link_id=$1 AND is_deleted=false`, [link_id]);
+
+    if (results.rows && results.rows.length > 0)
+      return results.rows[0];
+    else
+      return null;
+}
+
 const createWebLink = async (name, survey_id, user_id, link_id, close_quota, close_date, is_active) => {
   const results = 
     await pool.query(`
@@ -64,6 +74,7 @@ const updateWebLink = async (weblink_id, name, close_quota, close_date, is_activ
 
 module.exports = {
   getWebLinksBySurvey,
+  getWebLinkByLinkId,
   createWebLink,
   deleteWebLink,
   updateWebLink,

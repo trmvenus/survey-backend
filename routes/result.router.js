@@ -46,7 +46,6 @@ const getResultProc = (req, res, next) => {
       } else {
         postResult(survey_id, user_id, ip_address)
           .then(result => {
-            console.log(result);
             res.status(200).json(result);
           })
           .catch(err => {
@@ -65,6 +64,26 @@ const getResultProc = (req, res, next) => {
         message: "It couldn't get the result."
       });
     })
+}
+
+const postResultProc = (req, res, next) => {
+  const {survey_id, result, ip_address, time_spent} = req.body;
+
+  postResult(survey_id, null, ip_address, result, time_spent, true)
+    .then(result => {
+      if (req.body.link_id) {
+
+      } else {
+        res.status(200).json(result);
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "result/post-error",
+        message: "It couldn't post the result."
+      });
+    });
 }
 
 const updateResultProc = (req, res, next) => {
@@ -86,6 +105,7 @@ const updateResultProc = (req, res, next) => {
 router.get('/list', getResultListProc);
 router.get('/:id', getResultByIdProc);
 router.get('/', getResultProc);
+router.post('/', postResultProc);
 router.put('/', updateResultProc);
 
 module.exports = router;

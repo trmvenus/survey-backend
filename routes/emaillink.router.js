@@ -192,11 +192,11 @@ const sendEmailProc = (req, res, next) => {
             var mailOptions = {
               from: 'SurveyWizardSite <noreply@surveywizardsite.com>',
               to: email_address,
-              subject: 'Survey Link',
+              subject: 'Survey Link From SurveyWizardSite',
               html: link.email_content
             };
 
-            // await sendMail(mailOptions);
+            await sendMail(mailOptions);
           }
 
           setSendingFlag(link_id, true)

@@ -70,15 +70,15 @@ const getUncompletedResultBySurveyAndUser = async (survey_id, user_id) => {
   }
 }
 
-const postResult = async (survey_id, user_id, ip_address) => {
+const postResult = async (survey_id, user_id, ip_address, json={}, time_spent=0, is_completed=false) => {
   const results = 
     await pool.query(`
       INSERT INTO 
         results
-        (json, survey_id, user_id, time_spent, ip_address)
+        (json, survey_id, user_id, time_spent, ip_address, is_completed)
       VALUES
-        ('{}', $1, $2, 0, $3) 
-      RETURNING *`, [survey_id, user_id, ip_address]);
+        ($1, $2, $3, $4, $5, $6) 
+      RETURNING *`, [json, survey_id, user_id, time_spent, ip_address, is_completed]);
 
   if (results.rows && results.rows.length > 0)
     return results.rows[0];

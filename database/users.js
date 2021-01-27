@@ -6,7 +6,7 @@ const signInWithEmailAndPassword = async (email, password) => {
 }
 
 const createUserWithEmailAndPassword = async (name, email, password, role = 1,) => {
-	var results = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
+	const results = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
 	if (results.rows.length > 0) {
 		return { success: false };
 	} else {
@@ -15,8 +15,16 @@ const createUserWithEmailAndPassword = async (name, email, password, role = 1,) 
 	}
 }
 
+const getUserByEmail = async (email) => {
+	const res = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
+	if (res.rows && res.rows.length > 0)
+		return res.rows[0];
+	else 
+		return null;
+}
+
 const getUsersWithFilter = async (pageSize, currentPage, orderBy, search) => {
-	var results = await pool.query(`
+	const results = await pool.query(`
 				SELECT 
 					* 
 					, (SELECT name FROM organizations WHERE organizations.id=users.organization_id) as organization_name
@@ -29,7 +37,7 @@ const getUsersWithFilter = async (pageSize, currentPage, orderBy, search) => {
 }
 
 const getCountOfUsers = async (search) => {
-	var results = await pool.query(`
+	const results = await pool.query(`
         SELECT count(id) as count FROM users WHERE POSITION($1 in LOWER(name)) > 0 AND is_deleted=false
     `, [search]);
 	if (results.rows.length > 0)
@@ -39,13 +47,12 @@ const getCountOfUsers = async (search) => {
 }
 
 const updateUserPermission = async (user_id, method) => {
-	var results = await pool.query(`UPDATE users SET ${method} = NOT ${method} WHERE id=$1 RETURNING *`, [user_id]);
+	const results = await pool.query(`UPDATE users SET ${method} = NOT ${method} WHERE id=$1 RETURNING *`, [user_id]);
 	return results.rows[0];
 }
 
 const updateUserOrganization = async (user_id, organization_id) => {
-	console.log({user_id, organization_id})
-	var results = await pool.query(`
+	const results = await pool.query(`
 		UPDATE
 			users
 		SET
@@ -66,7 +73,7 @@ const updateUserOrganization = async (user_id, organization_id) => {
 }
 
 const activateUser = async (user_id, is_active) => {
-	var results = await pool.query(`UPDATE users SET is_active = NOT is_active WHERE id=$1 RETURNING *`, [user_id]);
+	const results = await pool.query(`UPDATE users SET is_active = NOT is_active WHERE id=$1 RETURNING *`, [user_id]);
 	return results.rows[0];
 }
 
@@ -82,6 +89,7 @@ const deleteUsers = async (ids) => {
 module.exports = {
 	signInWithEmailAndPassword,
 	createUserWithEmailAndPassword,
+	getUserByEmail,
 	getUsersWithFilter,
 	getCountOfUsers,
 	updateUserPermission,
