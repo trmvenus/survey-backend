@@ -27,9 +27,6 @@ const getEmailLinksProc = (req, res, next) => {
 const addEmailLinkProc = (req, res, next) => {
   const user_id = req.jwtUser.id;
 
-  console.log("defaultContactsFilePath");
-  console.log(defaultContactsFilePath);
-
   var options = {
     autoFiles: true,
     uploadDir: defaultContactsFilePath,
@@ -44,9 +41,7 @@ const addEmailLinkProc = (req, res, next) => {
         message: "It couldn't create new email link.",
       });
     } else {
-      console.log(files);
         const file = files.file[0];
-        console.log(file);
         const name = file.originalFilename;
         const ext = name.substr((name.lastIndexOf('.') +1));
         const newname = 'contacts_' + (Date.now().toString()) + '.' + ext;

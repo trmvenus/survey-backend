@@ -4,7 +4,9 @@ const jwt = require('jsonwebtoken');
 const {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  getUserByEmail
+  getUserByEmail,
+  getUserById,
+  resetPassword,
 } = require('../database/users');
 const forgotPasswordEmail = require('../mail-template/forgot-password');
 const crypt = require('../core/encryption');
@@ -107,25 +109,27 @@ const registerUserProc = (req, res, next) => {
 };
 
 const forgotPasswordProc = (req, res, next) => {
-  const {email} = req.body;
+  const {email} = req.query;
 
   getUserByEmail(email)
   .then(async user => {
     if (user) {
-      const resetPasswordLink = process.env.FRONTEND_URL + `/user/reset-password?token=` + crypt.encrypt(user.email_address);
+      const resetPasswordLink = process.env.FRONTEND_URL + `/user/reset-password?token=` + crypt.encrypt(user.email);
+
+      console.log(resetPasswordLink);
 
       var mailOptions = {
         from: 'SurveyWizardSite <noreply@surveywizardsite.com>',
-        to: email_address,
+        to: user.email,
         subject: 'Survey Link',
         html: forgotPasswordEmail(user.name, resetPasswordLink)
       };
 
       await sendMail(mailOptions);
 
-      res.status(200).json(true);
+      res.status(200).json(null);
     } else {
-      res.status(401).json({
+      res.status(200).json({
         code: "auth/not-found-email",
         message: "Your email is not registered."
       });
@@ -140,8 +144,92 @@ const forgotPasswordProc = (req, res, next) => {
   })
 }
 
+const resetPasswordProc = (req, res, next) => {
+  const {resetPasswordCode, newPassword} = req.body;
+
+  // const email = crypt.decrypt('resetPasswordCode');
+  try {
+    const email = crypt.decrypt(resetPasswordCode);
+
+    resetPassword(email, newPassword)
+      .then(user => {
+        if (user) {
+          res.status(200).json(null);
+        } else {
+          res.status(200).json({
+            code: "auth/wrong-token",
+            message: "There is wrong token.",
+          });
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(401).json({
+          code: "auth/reset-password-query-error",
+          message: "It couldn't reset the password."
+        })
+      });
+  } catch (err) {
+    console.log(err);
+    res.status(401).json({
+      code: "auth/reset-password-code-error",
+      message: "Wrong reset password code!"
+    });
+  }
+  
+}
+
+const getCurrentUserProc = (req, res, next) => {
+  const user_id = req.jwtUser.id;
+  getUserById(user_id)
+    .then (user => {
+      if (user) {
+        const payload = {
+          id: user.id,
+          name: user.name,
+        };
+
+        // Sign token
+        jwt.sign(
+          payload,
+          process.env.TOKEN_SECRET_KEY,
+          {
+            expiresIn: 31556926, // 1 year in seconds
+          },
+          (err, token) => {
+            if (err) {
+              console.log(err);
+              res.status(401).json({
+                code: "auth/get-access-token-error",
+                message: "It couldn't get current user."
+              });
+            } else {
+              user.accessToken = 'Bearer ' + token;
+              res.status(200).json(user);
+            }
+          }
+        );
+      } else {
+        console.log(err);
+        res.status(401).json({
+          code: "auth/get-user-query-error",
+          message: "Wrong User Id!"
+        });
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(401).json({
+        code: "auth/get-current-user-error",
+        message: "It couldn't get current user.",
+      });
+    })
+}
+
+router.get('/me', getCurrentUserProc);
 router.get('/login', loginUserProc);
 router.post('/signup', registerUserProc);
-router.post('/forgotpassword', forgotPasswordProc);
+router.get('/forgot-password', forgotPasswordProc);
+router.post('/reset-password', resetPasswordProc);
 
 module.exports = router;

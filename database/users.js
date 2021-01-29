@@ -23,6 +23,14 @@ const getUserByEmail = async (email) => {
 		return null;
 }
 
+const getUserById = async (user_id) => {
+	const res = await pool.query('SELECT * FROM users WHERE id=$1', [user_id]);
+	if (res.rows && res.rows.length > 0)
+		return res.rows[0];
+	else 
+		return null;
+}
+
 const getUsersWithFilter = async (pageSize, currentPage, orderBy, search) => {
 	const results = await pool.query(`
 				SELECT 
@@ -40,10 +48,21 @@ const getCountOfUsers = async (search) => {
 	const results = await pool.query(`
         SELECT count(id) as count FROM users WHERE POSITION($1 in LOWER(name)) > 0 AND is_deleted=false
     `, [search]);
-	if (results.rows.length > 0)
+	if (results.rows && results.rows.length > 0)
 		return results.rows[0].count;
 	else
 		return 0;
+}
+
+const resetPassword = async(email, newPassword) => {
+	const results = await pool.query(`
+		UPDATE users SET password=$2 WHERE email=$1 RETURNING *
+	`, [email, newPassword]);
+
+	if (results.rows && results.rows.length > 0)
+		return results.rows[0];
+	else
+		return null;
 }
 
 const updateUserPermission = async (user_id, method) => {
@@ -90,8 +109,10 @@ module.exports = {
 	signInWithEmailAndPassword,
 	createUserWithEmailAndPassword,
 	getUserByEmail,
+	getUserById,
 	getUsersWithFilter,
 	getCountOfUsers,
+	resetPassword,
 	updateUserPermission,
 	updateUserOrganization,
 	activateUser,
