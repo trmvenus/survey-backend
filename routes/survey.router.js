@@ -1,5 +1,15 @@
 var express = require('express');
-var {createSurvey, getMySurveys, getSurveyById, updateSurvey, deleteSurveys, copySurveys, shareSurvey} = require('../database/surveys');
+var {
+  createSurvey, 
+  getMySurveys, 
+  getSharedSurveys,
+  getSurveyById, 
+  updateSurvey, 
+  deleteSurveys, 
+  copySurveys, 
+  shareSurvey,
+  activeSurvey,
+  setMutliResponsesSurvey} = require('../database/surveys');
 var {copyResultsBySurvey, getResultDatesBySurvey} = require('../database/results');
 const { getWebLinkByLinkId } = require('../database/weblinks');
 const { getEmailLinkById } = require('../database/emaillinks');
@@ -17,10 +27,26 @@ const getSurveyListProc = (req, res, next) => {
       console.log(err);
       res.status(500).json({
         code: "survey/fetch-my-list-error",
-        message: "It couldn't fetch all surveys.",
+        message: "It couldn't fetch my surveys.",
       });
     })
 };
+
+const getSharedSurveyListProc = (req, res, next) => {
+  const user_id = req.jwtUser.id;
+
+  getSharedSurveys(user_id)
+    .then(surveys => {
+      res.status(200).json(surveys);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "survey/fetch-shared-list-error",
+        message: "Shared surveys cannot be fetched.",
+      });
+    })
+}
 
 const addSurveyProc = (req, res, next) => {
   var {title, category} = req.body;
@@ -31,7 +57,6 @@ const addSurveyProc = (req, res, next) => {
   createSurvey(title, user_id, category)
     .then(survey => {
       if (survey) { 
-        survey.responses = 0;
         res.status(200).json(survey); 
       } else {
         res.status(500).json({
@@ -71,8 +96,9 @@ const deleteSurveysProc = (req, res, next) => {
 
 const getSurveyProc = (req, res, next) => {
   const survey_id = req.params.id;
+  const user_id = req.jwtUser.id;
 
-  getSurveyById(survey_id)
+  getSurveyById(survey_id, user_id)
     .then(survey => {
       if (survey.is_deleted) {
         res.status(500).json({
@@ -146,7 +172,7 @@ const getSurveyByShareProc = async (req, res, next) => {
     });
 
   if (survey_id === -1) {
-    survey_id = await getWebLinkByLinkId(share_id)
+    survey_id = await getEmailLinkById(share_id)
     .then(emaillink => {
       if (emaillink) {
         if (emaillink.close_date) {
@@ -182,7 +208,7 @@ const getSurveyByShareProc = async (req, res, next) => {
   }
 
   if (survey_id) {
-    getSurveyById(survey_id)
+    getSurveyById(survey_id, null)
       .then(survey => {
         if (survey.is_deleted) {
           res.json({
@@ -293,9 +319,42 @@ const shareSurveyProc = (req, res, next) => {
     })
 }
 
+const activeSurveyProc = (req, res, next) => {
+  const survey_id = req.params.id;
+  activeSurvey(survey_id)
+    .then(survey => {
+      res.status(200).json(survey);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "survey/wrong-survey-id",
+        message: "It couldn't activate/inactivate survey."
+      })
+    })
+}
+
+const setMultiResponsesSurveyProc = (req, res, next) => {
+  const survey_id = req.params.id;
+  setMutliResponsesSurvey(survey_id)
+    .then(survey => {
+      res.status(200).json(survey);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "survey/wrong-survey-id",
+        message: "It couldn't set/unset multi-responses."
+      })
+    })
+}
+
 router.post('/copy', copySurveysProc);
+router.get('/shared', getSharedSurveyListProc);
 router.get('/share', getSurveyByShareProc);
-router.get('/:id/share', shareSurveyProc);
+router.put('/:id/share', shareSurveyProc);
+router.put('/:id/active', activeSurveyProc);
+router.put('/:id/multi-responses', setMultiResponsesSurveyProc);
 router.get('/:id', getSurveyProc);
 router.put('/:id', updateSurveyProc);
 router.get('/', getSurveyListProc);

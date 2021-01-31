@@ -13,6 +13,7 @@ const emaillinkRouter = require('./emaillink.router');
 const userRouter = require('./user.router');
 const organizationRouter = require('./organization.router');
 const pillarRouter = require('./pillar.router');
+const dashboardRouter = require('./dashboard.router');
 
 require('dotenv').config();
 
@@ -42,5 +43,6 @@ router.use('/link/email', emaillinkRouter);
 router.use('/user', userRouter);
 router.use('/organization', organizationRouter);
 router.use('/pillar', pillarRouter);
+router.use('/dashboard', dashboardRouter);
 
 module.exports = router;
