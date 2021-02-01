@@ -56,48 +56,39 @@ const addEmailLinkProc = (req, res, next) => {
             });
           } else {
 
-            fs.unlink(file.path, (err) => {
-              if (err) {
+            let { 
+              name,
+              survey_id,
+              link_id,
+              email_content,
+              sender_name,
+              sender_email,
+              close_quota,
+              close_date,
+            } = JSON.parse(fields.item[0]);
+
+            close_quota = close_quota ? close_quota : null;
+            close_date = close_date.length ? close_date : null;
+
+            createEmailLink(name, survey_id, user_id, link_id, email_content, sender_name, sender_email, close_quota, close_date, newname)
+              .then(emailLink => {
+                if (emailLink) {
+                  console.log(emailLink);
+                  res.status(200).json(emailLink); 
+                } else {
+                  res.status(500).json({
+                    code: "emaillink/create-error",
+                    message: "It couldn't create new email link.",
+                  });
+                }
+              })
+              .catch(err => {
                 console.log(err);
                 res.status(500).json({
-                  code: "emaillink/fs-unlink-error",
+                  code: "emaillink/create-error",
                   message: "It couldn't create new email link.",
                 });
-              } else {
-                let { 
-                  name,
-                  survey_id,
-                  link_id,
-                  email_content,
-                  sender_name,
-                  sender_email,
-                  close_quota,
-                  close_date,
-                } = fields;
-    
-                close_quota = close_quota.length ? close_quota : null;
-                close_date = close_date.length ? close_date : null;
-    
-                createEmailLink(name, survey_id, user_id, link_id, email_content, sender_name, sender_email, close_quota, close_date, newname)
-                  .then(emailLink => {
-                    if (emailLink) {
-                      res.status(200).json(emailLink); 
-                    } else {
-                      res.status(500).json({
-                        code: "emaillink/create-error",
-                        message: "It couldn't create new email link.",
-                      });
-                    }
-                  })
-                  .catch(err => {
-                    console.log(err);
-                    res.status(500).json({
-                      code: "emaillink/create-error",
-                      message: "It couldn't create new email link.",
-                    });
-                  });
-              }
-            })
+              });
           }
         });
     }

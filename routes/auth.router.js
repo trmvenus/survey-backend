@@ -122,7 +122,11 @@ const forgotPasswordProc = (req, res, next) => {
         from: 'SurveyWizardSite <noreply@surveywizardsite.com>',
         to: user.email,
         subject: 'Survey Link',
-        html: forgotPasswordEmail(user.name, resetPasswordLink)
+        html: forgotPasswordEmail(user.name, resetPasswordLink),
+        envelope: {
+          from: 'SurveyWizardSite <noreply@surveywizardsite.com>',
+          to: user.email,
+        }
       };
 
       await sendMail(mailOptions);
