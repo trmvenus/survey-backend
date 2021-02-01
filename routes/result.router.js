@@ -1,5 +1,5 @@
 var express = require('express');
-var { getResultsBySurvey, getUncompletedResultBySurveyAndUser, postResult, updateResult, getResultById } = require('../database/results');
+var { getResultsBySurvey, getUncompletedResultBySurveyAndUser, postResult, updateResult, getResultById, postManualResult } = require('../database/results');
 
 var router = express.Router();
 
@@ -66,16 +66,15 @@ const getResultProc = (req, res, next) => {
     })
 }
 
+// For only weblink/emaillink
 const postResultProc = (req, res, next) => {
   const {survey_id, result, ip_address, time_spent} = req.body;
 
   postResult(survey_id, null, ip_address, result, time_spent, true)
     .then(result => {
       if (req.body.link_id) {
-
-      } else {
-        res.status(200).json(result);
       }
+      res.status(200).json(result);
     })
     .catch(err => {
       console.log(err);
@@ -84,6 +83,23 @@ const postResultProc = (req, res, next) => {
         message: "It couldn't post the result."
       });
     });
+}
+
+// For only manual data entry
+const postManualResultProc = (req, res, next) => {
+  const {result, survey_id, time_spent, ip_address, respondent_name}  = req.body;
+
+  postManualResult(result, survey_id, time_spent, ip_address, respondent_name)
+    .then(result => {
+      res.json(result);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "result/post-manual-error",
+        message: "It couldn't post the manual result."
+      });
+    })
 }
 
 const updateResultProc = (req, res, next) => {
@@ -103,6 +119,7 @@ const updateResultProc = (req, res, next) => {
 };
 
 router.get('/list', getResultListProc);
+router.post('/manual', postManualResultProc);
 router.get('/:id', getResultByIdProc);
 router.get('/', getResultProc);
 router.post('/', postResultProc);

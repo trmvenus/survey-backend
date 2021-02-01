@@ -5,7 +5,8 @@ const getResultsBySurvey = async (survey_id) => {
     await pool.query(`
       SELECT 
         *,
-        (SELECT name FROM users WHERE results.user_id=users.id) as username
+        CASE WHEN user_id IS NULL THEN respondent_name
+        ELSE (SELECT name FROM users WHERE results.user_id=users.id) END AS respondent_name
       FROM
         results 
       WHERE 
@@ -125,6 +126,23 @@ const postResult = async (survey_id, user_id, ip_address, json={}, time_spent=0,
     return null;
 }
 
+const postManualResult = async (result, survey_id, time_spent, ip_address, respondent_name) => {
+  const results = 
+    await pool.query(`
+      INSERT INTO 
+        results
+        (json, survey_id, time_spent, ip_address, respondent_name, is_completed, is_manual)
+      VALUES
+        ($1, $2, $3, $4, $5, true, true)
+      RETURNING *
+    `, [result, survey_id, time_spent, ip_address, respondent_name]);
+
+  if (results.rows && results.rows.length > 0)
+    return results.rows[0];
+  else
+    return null;
+}
+
 const updateResult = async (id, json, time_spent, ip_address, is_completed) => {
   const results = 
     await pool.query(`
@@ -164,6 +182,7 @@ module.exports = {
   getResultById,
   getUncompletedResultBySurveyAndUser,
   postResult,
+  postManualResult,
   updateResult,
   copyResultsBySurvey
 };
