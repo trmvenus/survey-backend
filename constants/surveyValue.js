@@ -5,6 +5,7 @@ const REPORT_TYPE = {
   OPEN_END: 'open-end',
   PILLAR: 'pillar',
   QUESTION_SCORE: 'question-score',
+  BENCHMARKING: 'benchmarking',
 };
 
 module.exports = {

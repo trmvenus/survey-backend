@@ -44,6 +44,10 @@ const addReportProc = (req, res, next) => {
     openEndQuestion,
     pillar,
     survey,
+    survey1,
+    survey2,
+    element1, 
+    element2,
   } = req.body;
 
   const user_id = req.jwtUser.id;
@@ -79,6 +83,14 @@ const addReportProc = (req, res, next) => {
         invisibles: [],
         pillar: pillar,
       };
+      break;
+
+    case REPORT_TYPE.BENCHMARKING:
+      section.content = {
+        survey1, survey2, element1, element2,
+      };
+
+      console.log(section.content);
       break;
   }
 
@@ -196,6 +208,7 @@ const updateReportProc = (req, res, next) => {
   } else if (sections) {
     updateReportSections(report_id, JSON.stringify(sections))
     .then (report => {
+      console.log(report);
       if (report) {
         res.status(200).json(report); 
       } else {

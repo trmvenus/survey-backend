@@ -19,7 +19,7 @@ const getEmailLinksBySurvey = async (survey_id) => {
       return [];
 }
 
-const getEmailLinkById = async (link_id) => {
+const getEmailLinkById = async (id) => {
   const results = 
     await pool.query(`
       SELECT 
@@ -28,7 +28,17 @@ const getEmailLinkById = async (link_id) => {
         emaillinks 
       WHERE 
         id=$1 AND is_deleted=false
-    `, [link_id]);
+    `, [id]);
+
+    if (results.rows && results.rows.length > 0)
+      return results.rows[0];
+    else
+      return null;
+}
+
+const getEmailLinkByLinkId = async (link_id) => {
+  const results = 
+    await pool.query(`SELECT * FROM emaillinks WHERE link_id=$1 AND is_deleted=false`, [link_id]);
 
     if (results.rows && results.rows.length > 0)
       return results.rows[0];
@@ -92,6 +102,7 @@ const setSendingFlag = async (emaillink_id, is_sent) => {
 module.exports = {
   getEmailLinksBySurvey,
   getEmailLinkById,
+  getEmailLinkByLinkId,
   createEmailLink,
   deleteEmailLink,
   updateEmailLink,

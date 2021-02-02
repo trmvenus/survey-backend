@@ -12,7 +12,7 @@ var {
   setMutliResponsesSurvey} = require('../database/surveys');
 var {copyResultsBySurvey, getResultDatesBySurvey} = require('../database/results');
 const { getWebLinkByLinkId } = require('../database/weblinks');
-const { getEmailLinkById } = require('../database/emaillinks');
+const { getEmailLinkByLinkId } = require('../database/emaillinks');
 
 var router = express.Router();
 
@@ -172,7 +172,7 @@ const getSurveyByShareProc = async (req, res, next) => {
     });
 
   if (survey_id === -1) {
-    survey_id = await getEmailLinkById(share_id)
+    survey_id = await getEmailLinkByLinkId(share_id)
     .then(emaillink => {
       if (emaillink) {
         if (emaillink.close_date) {
