@@ -32,88 +32,15 @@ const addReportProc = (req, res, next) => {
   const { 
     name, 
     type, 
-    conditionFilter, 
-    conditionQuestion, 
-    conditionOperator, 
-    conditionOption,
-    dateFilter,
-    startDate,
-    endDate,
-    horizontalQuestion,
-    verticalQuestion,
-    openEndQuestion,
-    pillar,
+    section,
+    filter,
     survey,
-    survey1,
-    survey2,
-    element1, 
-    element2,
   } = req.body;
 
   const user_id = req.jwtUser.id;
 
-  const section = {
-    id: 1,
-    type: type,
-    content: {},
-  };
-
-  switch(type) {
-    case REPORT_TYPE.SUMMARY:
-      section.content = {
-        invisibles: [],
-      };
-      break;
-
-    case REPORT_TYPE.CROSS_TAB:
-      section.content = {
-        horizontal: horizontalQuestion,
-        vertical: verticalQuestion,
-      };
-      break;
-
-    case REPORT_TYPE.OPEN_END:
-      section.content = {
-        openend: openEndQuestion,
-      };
-      break;
-
-    case REPORT_TYPE.PILLAR:
-      section.content = {
-        invisibles: [],
-        pillar: pillar,
-      };
-      break;
-
-    case REPORT_TYPE.BENCHMARKING:
-      section.content = {
-        survey1, survey2, element1, element2,
-      };
-
-      console.log(section.content);
-      break;
-  }
-
   var sections = [section];
 
-  var filter = {
-    dateFilter: dateFilter,
-    conditionFilter: conditionFilter,
-  }
-
-  if (dateFilter) {
-    filter.startDate = startDate;
-    filter.endDate = endDate;
-  }
-  if (conditionFilter) {
-    filter.conditions = [{
-      question: conditionQuestion,
-      operator: conditionOperator,
-      option: conditionOption,
-    }]
-  }
-
-  filter = filter;
   sections = JSON.stringify(sections);
 
   createReport(name, survey, user_id, type, filter, sections)
@@ -208,7 +135,6 @@ const updateReportProc = (req, res, next) => {
   } else if (sections) {
     updateReportSections(report_id, JSON.stringify(sections))
     .then (report => {
-      console.log(report);
       if (report) {
         res.status(200).json(report); 
       } else {

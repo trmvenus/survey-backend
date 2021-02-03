@@ -73,7 +73,6 @@ const addEmailLinkProc = (req, res, next) => {
             createEmailLink(name, survey_id, user_id, link_id, email_content, sender_name, sender_email, close_quota, close_date, newname)
               .then(emailLink => {
                 if (emailLink) {
-                  console.log(emailLink);
                   res.status(200).json(emailLink); 
                 } else {
                   res.status(500).json({
