@@ -13,7 +13,7 @@ const {
   setSendingFlag, 
 } = require('../database/emaillinks');
 const { defaultContactsFilePath } = require('../constants/defaultValues');
-const { createEmailLinkContacts, getEmailLinkContactsByLinkId } = require('../database/emaillinks_contacts');
+const { createEmailLinkContacts, getEmailLinkContactsByLinkId, setContactStatus, getEmailLinkContactByLinkIdAndEmail, setEmailOpenById } = require('../database/emaillinks_contacts');
 
 var router = express.Router();
 
@@ -220,48 +220,38 @@ const deleteEmailLinkProc = (req, res, next) => {
 };
 
 const sendEmailProc = (req, res, next) => {
-  var link_id = req.params.id;
+  const id = req.params.id;
+  const email = req.query.email;
 
-  getEmailLinkById(link_id)
-    .then(async (link) => {
+  getEmailLinkById(id)
+    .then(link => {
       if (link) {
-        const worksheets = xlsx.parse(defaultContactsFilePath + '/' + link.contacts_file);
-        const rows = worksheets[0].data;
-        const firstRow = rows[0];
+        if (email) {
+          getEmailLinkContactByLinkIdAndEmail(link.link_id, email)
+            .then(async contact => {
+              const email_address = contact.email_address;
+              const first_name = contact.first_name;
 
-        if (!(firstRow[0] == "Email Address" && firstRow[1] == "First Name" && firstRow[2] == "Last Name")) {
-          res.status(500).send({
-            code: "emaillink/not-found-email-link",
-            message: "The email cannot be sent because the contact file is in the wrong format.",
-          });
-        } else {
-          for (let i = 1; i < rows.length; i ++) {
-            const email_address = rows[i][0];
-            const first_name = rows[i][1];
+              link.email_content = link.email_content.replace("{EmailAddress}", link.sender_email);
+              link.email_content = link.email_content.replace("{FirstName}", first_name);
+              link.email_content += `<img src='${req.protocol + '://' + req.get('host')}/link/email/${contact.id}/email-logo.jpg' />`
 
-            link.email_content = link.email_content.replace("{EmailAddress}", link.sender_email);
-            link.email_content = link.email_content.replace("{FirstName}", first_name);
+              var mailOptions = {
+                from: 'SurveyWizardSite <noreply@surveywizardsite.com>',
+                to: email_address,
+                subject: 'Survey Link From SurveyWizardSite',
+                html: link.email_content
+              };
 
-            var mailOptions = {
-              from: 'SurveyWizardSite <noreply@surveywizardsite.com>',
-              to: email_address,
-              subject: 'Survey Link From SurveyWizardSite',
-              html: link.email_content
-            };
-
-            await sendMail(mailOptions);
-          }
-
-          setSendingFlag(link_id, true)
-            .then(result => {
-              if (result) {
-                res.status(200).json({
-                  success: true,
-                  id: result.id,
-                });
-              } else {
+              try {
+                const success = await sendMail(mailOptions);
+                const newContact = await setContactStatus(contact.id, success);
+                
+                res.send(newContact);
+              } catch(err) {
+                console.log(err);
                 res.status(500).send({
-                  code: "emaillink/update-sending-flag-error",
+                  code: "emaillink/sending-email-failed",
                   message: "The email cannot be sent.",
                 });
               }
@@ -269,8 +259,68 @@ const sendEmailProc = (req, res, next) => {
             .catch(err => {
               console.log(err);
               res.status(500).send({
-                code: "emaillink/not-found-email-link",
-                message: "The email cannot be sent.",
+                code: "emaillink_contacts/get-emaillink-contact-error",
+                message: "It couldn't get the contact from this email link.",
+              });
+            })
+        } else {
+          getEmailLinkContactsByLinkId(link.link_id)
+            .then(async contacts => {
+              for (let contact of contacts) {
+                const email_address = contact.email_address;
+                const first_name = contact.first_name;
+
+                link.email_content = link.email_content.replace("{EmailAddress}", link.sender_email);
+                link.email_content = link.email_content.replace("{FirstName}", first_name);
+                link.email_content += `<img src='${req.protocol + '://' + req.get('host')}/link/email/${contact.id}/email-logo.jpg' />`
+
+                var mailOptions = {
+                  from: 'SurveyWizardSite <noreply@surveywizardsite.com>',
+                  to: email_address,
+                  subject: 'Survey Link From SurveyWizardSite',
+                  html: link.email_content
+                };
+
+                try {
+                  const success = await sendMail(mailOptions);
+    
+                  await setContactStatus(contact.id, success);
+                } catch(err) {
+                  console.log(err);
+                  res.status(500).send({
+                    code: "emaillink/sending-email-failed",
+                    message: "The email cannot be sent.",
+                  });
+                }
+              }
+
+              setSendingFlag(id, true)
+                .then(result => {
+                  if (result) {
+                    res.status(200).json({
+                      success: true,
+                      id: result.id,
+                    });
+                  } else {
+                    res.status(500).send({
+                      code: "emaillink/update-sending-flag-error",
+                      message: "The email cannot be sent.",
+                    });
+                  }
+                })
+                .catch(err => {
+                  console.log(err);
+                  res.status(500).send({
+                    code: "emaillink/not-found-email-link",
+                    message: "The email cannot be sent.",
+                  });
+                });
+            })
+            .catch(err => {
+              console.log(err);
+              res.status(500).send({
+                code: "emaillink_contacts/get-emaillinks-contacts-error",
+                message: "It couldn't get the contacts from this email link.",
               });
             });
         }
@@ -290,6 +340,19 @@ const sendEmailProc = (req, res, next) => {
     })
 }
 
+const trackEmailProc = (req, res, next) => {
+  const contact_id = req.params.id;
+
+  setEmailOpenById(contact_id)
+    .then(contact => {
+      res.render('email-logo', {});
+    })
+    .catch(() => {
+      res.render('email-logo', {});
+    })
+}
+
+router.get('/:id/email-logo.jpg', trackEmailProc);
 router.get('/:id/send', sendEmailProc);
 router.get('/:id', getEmailLinkProc);
 router.put('/:id', updateEmailLinkProc);
