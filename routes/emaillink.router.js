@@ -4,8 +4,16 @@ const fs = require('fs');
 const xlsx = require('node-xlsx');
 const { sendMail } = require('../core/mailer');
 
-const { getEmailLinksBySurvey, createEmailLink, updateEmailLink, deleteEmailLink, getEmailLinkById, setSendingFlag, } = require('../database/emaillinks');
+const { 
+  getEmailLinksBySurvey, 
+  getEmailLinkById, 
+  createEmailLink, 
+  updateEmailLink, 
+  deleteEmailLink, 
+  setSendingFlag, 
+} = require('../database/emaillinks');
 const { defaultContactsFilePath } = require('../constants/defaultValues');
+const { createEmailLinkContacts, getEmailLinkContactsByLinkId } = require('../database/emaillinks_contacts');
 
 var router = express.Router();
 
@@ -24,6 +32,42 @@ const getEmailLinksProc = (req, res, next) => {
   })
 };
 
+const getEmailLinkProc = (req, res, next) => {
+  const id = req.params.id;
+
+  getEmailLinkById(id)
+    .then(emailLink => {
+      if (emailLink) {
+        getEmailLinkContactsByLinkId(emailLink.link_id)
+          .then(contacts => {
+            res.json({
+              ...emailLink,
+              contacts,
+            });
+          })
+          .catch(err => {
+            console.log(err);
+            res.status(500).json({
+              code: "emaillink_contacts/get-contacts",
+              message: "It couldn't get the link by id.",
+            });
+          })
+      } else {
+        res.status(500).json({
+          code: "emaillink/not-found",
+          message: "It couldn't get the link by id.",
+        });
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "emaillink/fetch-error",
+        message: "It couldn't get the link by id.",
+      });
+    })
+}
+
 const addEmailLinkProc = (req, res, next) => {
   const user_id = req.jwtUser.id;
 
@@ -41,21 +85,30 @@ const addEmailLinkProc = (req, res, next) => {
         message: "It couldn't create new email link.",
       });
     } else {
-        const file = files.file[0];
-        const name = file.originalFilename;
-        const ext = name.substr((name.lastIndexOf('.') +1));
-        const newname = 'contacts_' + (Date.now().toString()) + '.' + ext;
-        const newpath = defaultContactsFilePath + '/' + newname;
-    
-        fs.rename(file.path, newpath, (err) => {
-          if (err) {
-            console.log(err);
-            res.status(500).json({
-              code: "emaillink/fs-rename-error",
-              message: "It couldn't create new email link.",
+      const file = files.file[0];
+      const name = file.originalFilename;
+      const ext = name.substr((name.lastIndexOf('.') +1));
+      const newname = 'contacts_' + (Date.now().toString()) + '.' + ext;
+      const newpath = defaultContactsFilePath + '/' + newname;
+  
+      fs.rename(file.path, newpath, (err) => {
+        if (err) {
+          console.log(err);
+          res.status(500).json({
+            code: "emaillink/fs-rename-error",
+            message: "It couldn't create new email link.",
+          });
+        } else {
+          const worksheets = xlsx.parse(newpath);
+          const rows = worksheets[0].data;
+          const firstRow = rows[0];
+
+          if (!(firstRow[0] == "Email Address" && firstRow[1] == "First Name" && firstRow[2] == "Last Name")) {
+            res.status(500).send({
+              code: "emaillink/not-found-email-link",
+              message: "It couldn't parse the contact file because this has the wrong format.",
             });
           } else {
-
             let { 
               name,
               survey_id,
@@ -67,29 +120,44 @@ const addEmailLinkProc = (req, res, next) => {
               close_date,
             } = JSON.parse(fields.item[0]);
 
+            const contactRows = [];
+            for (let i = 1; i < rows.length; i ++) {
+              contactRows.push([link_id, rows[i][0], rows[i][1], rows[i][2]]);
+            }
             close_quota = close_quota ? close_quota : null;
             close_date = close_date.length ? close_date : null;
 
-            createEmailLink(name, survey_id, user_id, link_id, email_content, sender_name, sender_email, close_quota, close_date, newname)
-              .then(emailLink => {
-                if (emailLink) {
-                  res.status(200).json(emailLink); 
-                } else {
-                  res.status(500).json({
-                    code: "emaillink/create-error",
-                    message: "It couldn't create new email link.",
+            createEmailLinkContacts(contactRows)
+              .then(result => {
+                createEmailLink(name, survey_id, user_id, link_id, email_content, sender_name, sender_email, close_quota, close_date, newname)
+                  .then(emailLink => {
+                    if (emailLink) {
+                      res.status(200).json(emailLink); 
+                    } else {
+                      res.status(500).json({
+                        code: "emaillink/create-error",
+                        message: "It couldn't create new email link.",
+                      });
+                    }
+                  })
+                  .catch(err => {
+                    console.log(err);
+                    res.status(500).json({
+                      code: "emaillink/create-error",
+                      message: "It couldn't create new email link.",
+                    });
                   });
-                }
               })
               .catch(err => {
                 console.log(err);
                 res.status(500).json({
-                  code: "emaillink/create-error",
+                  code: "emaillink-contacts/create-error",
                   message: "It couldn't create new email link.",
                 });
               });
           }
-        });
+        }
+      });
     }
   });
 };
@@ -223,6 +291,7 @@ const sendEmailProc = (req, res, next) => {
 }
 
 router.get('/:id/send', sendEmailProc);
+router.get('/:id', getEmailLinkProc);
 router.put('/:id', updateEmailLinkProc);
 router.delete('/:id', deleteEmailLinkProc);
 router.get('/', getEmailLinksProc);
