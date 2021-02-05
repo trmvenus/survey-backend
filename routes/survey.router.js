@@ -129,10 +129,10 @@ const getSurveyProc = (req, res, next) => {
     });
 };
 
-const getSurveyByShareProc = async (req, res, next) => {
-  const share_id = req.query.id;
+const getSurveyByWebLinkProc = (req, res, next) => {
+  const weblink_id = req.query.id;
 
-  let survey_id = await getWebLinkByLinkId(share_id)
+  getWebLinkByLinkId(weblink_id)
     .then(weblink => {
       if (weblink) {
         if (weblink.close_date) {
@@ -144,7 +144,7 @@ const getSurveyByShareProc = async (req, res, next) => {
               code: "survey/over-deadline",
               message: "The deadline has passed."
             });
-            return null;
+            return;
           }
         }
         if (!weblink.is_active) {
@@ -153,12 +153,36 @@ const getSurveyByShareProc = async (req, res, next) => {
             code: "survey/inactivate-survey",
             message: "This survey is not active yet."
           });
-          return null;
         } else {
-          return weblink.survey_id;
+          getSurveyById(weblink.survey_id, null)
+            .then(survey => {
+              if (survey.is_deleted) {
+                res.json({
+                  success: false,
+                  code: "survey/deleted-survey",
+                  message: "This survey was deleted.",
+                });
+              } else {
+                res.json({
+                  success: true,
+                  survey,
+                })
+              }
+            })
+            .catch(err => {
+              console.log(err);
+              res.status(401).json({
+                code: "survey/fetch-error",
+                message: "It couldn't fetch the survey.",
+              });
+            });
         }
       } else {
-        return -1;
+        res.json({
+          success: false,
+          code: "survey/not-found-web-link",
+          message: "It couldn't find this survey."
+        });
       }
     })
     .catch(err => {
@@ -170,45 +194,27 @@ const getSurveyByShareProc = async (req, res, next) => {
       });
       return null;
     });
+}
 
-  if (survey_id === -1) {
-    survey_id = await getEmailLinkByLinkId(share_id)
-    .then(emaillink => {
-      if (emaillink) {
-        if (emaillink.close_date) {
-          const close_date = new Date(emaillink.close_date);
-          const today_date = new Date();
-          if (today_date > close_date) {
-            res.json({
-              success: false,
-              code: "survey/over-deadline",
-              message: "The deadline has passed."
-            });
-            return null;
-          }
+const getSurveyByEmailLinkProc = (req, res, next) => {
+  const emaillink_id = req.query.id;
+
+  getEmailLinkByLinkId(emaillink_id)
+  .then(emaillink => {
+    if (emaillink) {
+      if (emaillink.close_date) {
+        const close_date = new Date(emaillink.close_date);
+        const today_date = new Date();
+        if (today_date > close_date) {
+          res.json({
+            success: false,
+            code: "survey/over-deadline",
+            message: "The deadline has passed."
+          });
+          return;
         }
-        return emaillink.survey_id;
-      } else {
-        res.json({
-          success: false,
-          code: "survey/not-found-link",
-          message: "It couldn't find the survey."
-        });
-        return null;
       }
-    })
-    .catch(err => {
-      console.error(err);
-      res.status(401).json({
-        code: "survey/fetch-emaillink-error",
-        message: "It couldn't fetch the survey."
-      });
-      return null;
-    });
-  }
-
-  if (survey_id) {
-    getSurveyById(survey_id, null)
+      getSurveyById(emaillink.survey_id, null)
       .then(survey => {
         if (survey.is_deleted) {
           res.json({
@@ -230,8 +236,23 @@ const getSurveyByShareProc = async (req, res, next) => {
           message: "It couldn't fetch the survey.",
         });
       });
-  }
-
+    } else {
+      res.json({
+        success: false,
+        code: "survey/not-found-email-link",
+        message: "It couldn't find the survey."
+      });
+      return null;
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    res.status(401).json({
+      code: "survey/fetch-emaillink-error",
+      message: "It couldn't fetch the survey."
+    });
+    return null;
+  });
 }
 
 const updateSurveyProc = (req, res, next) => {
@@ -322,7 +343,7 @@ const shareSurveyProc = (req, res, next) => {
 const activeSurveyProc = (req, res, next) => {
   const survey_id = req.params.id;
   activeSurvey(survey_id)
-    .then(survey => {
+    .then(survey => {http://localhost:3000/share/e/run?id=gxblsppv
       res.status(200).json(survey);
     })
     .catch(err => {
@@ -351,7 +372,8 @@ const setMultiResponsesSurveyProc = (req, res, next) => {
 
 router.post('/copy', copySurveysProc);
 router.get('/shared', getSharedSurveyListProc);
-router.get('/share', getSurveyByShareProc);
+router.get('/w/share', getSurveyByWebLinkProc);
+router.get('/e/share', getSurveyByEmailLinkProc);
 router.put('/:id/share', shareSurveyProc);
 router.put('/:id/active', activeSurveyProc);
 router.put('/:id/multi-responses', setMultiResponsesSurveyProc);

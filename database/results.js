@@ -1,12 +1,16 @@
 const pool = require('./pool');
 
 const getResultsBySurvey = async (survey_id) => {
-  const results = 
+  const results =
     await pool.query(`
       SELECT 
         *,
-        CASE WHEN user_id IS NULL THEN respondent_name
-        ELSE (SELECT name FROM users WHERE results.user_id=users.id) END AS respondent_name
+        CASE
+          WHEN is_manual IS true THEN respondent_name
+          WHEN (emaillink_link_id IS NOT null) THEN (SELECT CONCAT(first_name, ' ', last_name) FROM emaillinks_contacts WHERE emaillinks_contacts.id=results.emaillink_contact_id)
+          WHEN (weblink_link_id IS NOT null) THEN respondent_name
+          ELSE (SELECT name FROM users WHERE results.user_id=users.id) 
+        END AS respondent_name
       FROM
         results 
       WHERE 
@@ -15,14 +19,14 @@ const getResultsBySurvey = async (survey_id) => {
         id DESC
     `, [survey_id]);
 
-    if (results.rows && results.rows.length > 0)
-      return results.rows;
-    else
-      return [];
+  if (results.rows && results.rows.length > 0)
+    return results.rows;
+  else
+    return [];
 }
 
 const getResultDatesBySurvey = async (survey_id) => {
-  const results = 
+  const results =
     await pool.query(`
       SELECT 
         TO_CHAR(created_at, 'YYYY-MM-DD') AS created_at
@@ -34,14 +38,14 @@ const getResultDatesBySurvey = async (survey_id) => {
         id DESC
     `, [survey_id]);
 
-    if (results.rows && results.rows.length > 0)
-      return results.rows;
-    else
-      return [];
+  if (results.rows && results.rows.length > 0)
+    return results.rows;
+  else
+    return [];
 }
 
 const getResultDatesBySurveyCreator = async (creator_id) => {
-  const results = 
+  const results =
     await pool.query(`
     SELECT
       TO_CHAR(results.created_at, 'YYYY-MM-DD') AS created_at
@@ -57,12 +61,12 @@ const getResultDatesBySurveyCreator = async (creator_id) => {
 
   if (results.rows && results.rows.length > 0)
     return results.rows.map(row => row.created_at);
-  else 
+  else
     return [];
 }
 
-const getCompletedResponsesBySurveyCreator= async (creator_id) => {
-  const results = 
+const getCompletedResponsesBySurveyCreator = async (creator_id) => {
+  const results =
     await pool.query(`
     SELECT
       count(results.id) as count
@@ -73,14 +77,14 @@ const getCompletedResponsesBySurveyCreator= async (creator_id) => {
     WHERE 
       surveys.user_id=$1 AND is_completed=true
     `, [creator_id]);
-    if (results.rows && results.rows.length > 0)
-      return results.rows[0].count;
-    else
-      return 0;
+  if (results.rows && results.rows.length > 0)
+    return results.rows[0].count;
+  else
+    return 0;
 }
 
 const getResultById = async (result_id) => {
-  const results = 
+  const results =
     await pool.query(`
     SELECT * FROM results WHERE id=$1
     `, [result_id]);
@@ -93,7 +97,7 @@ const getResultById = async (result_id) => {
 }
 
 const getUncompletedResultBySurveyAndUser = async (survey_id, user_id) => {
-  const results = 
+  const results =
     await pool.query(`
       SELECT
         *
@@ -110,15 +114,55 @@ const getUncompletedResultBySurveyAndUser = async (survey_id, user_id) => {
   }
 }
 
-const postResult = async (survey_id, user_id, ip_address, json={}, time_spent=0, is_completed=false) => {
-  const results = 
+const getResultItemByWebLinkAndName = async (weblink_link_id, respondent_name, ip_address) => {
+  const results =
+    await pool.query(`
+      SELECT
+        *
+      FROM
+        results
+      WHERE
+        weblink_link_id=$1 AND respondent_name=$2 AND ip_address=$3
+    `, [weblink_link_id, respondent_name, ip_address]);
+
+  if (results.rows && results.rows.length > 0)
+    return results.rows[0];
+  else {
+    return null;
+  }
+}
+
+const postResult = async (
+  survey_id,
+  user_id,
+  ip_address,
+  json = {},
+  time_spent = 0,
+  is_completed = false,
+  weblink_link_id = null,
+  emaillink_link_id = null,
+  emaillink_contact_id = null,
+  respondent_name = null,
+) => {
+  const results =
     await pool.query(`
       INSERT INTO 
         results
-        (json, survey_id, user_id, time_spent, ip_address, is_completed)
+        (json, survey_id, user_id, time_spent, ip_address, is_completed, weblink_link_id, emaillink_link_id, emaillink_contact_id, respondent_name)
       VALUES
-        ($1, $2, $3, $4, $5, $6) 
-      RETURNING *`, [json, survey_id, user_id, time_spent, ip_address, is_completed]);
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+      RETURNING *`, [
+        json, 
+        survey_id, 
+        user_id, 
+        time_spent, 
+        ip_address, 
+        is_completed, 
+        weblink_link_id, 
+        emaillink_link_id,
+        emaillink_contact_id,
+        respondent_name
+      ]);
 
   if (results.rows && results.rows.length > 0)
     return results.rows[0];
@@ -127,7 +171,7 @@ const postResult = async (survey_id, user_id, ip_address, json={}, time_spent=0,
 }
 
 const postManualResult = async (result, survey_id, time_spent, ip_address, respondent_name) => {
-  const results = 
+  const results =
     await pool.query(`
       INSERT INTO 
         results
@@ -144,7 +188,7 @@ const postManualResult = async (result, survey_id, time_spent, ip_address, respo
 }
 
 const updateResult = async (id, json, time_spent, ip_address, is_completed) => {
-  const results = 
+  const results =
     await pool.query(`
       UPDATE 
         results
@@ -181,6 +225,7 @@ module.exports = {
   getCompletedResponsesBySurveyCreator,
   getResultById,
   getUncompletedResultBySurveyAndUser,
+  getResultItemByWebLinkAndName,
   postResult,
   postManualResult,
   updateResult,

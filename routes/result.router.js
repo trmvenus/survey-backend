@@ -1,5 +1,14 @@
 var express = require('express');
-var { getResultsBySurvey, getUncompletedResultBySurveyAndUser, postResult, updateResult, getResultById, postManualResult } = require('../database/results');
+const { setResultOnEmailContact } = require('../database/emaillinks_contacts');
+var { 
+  getResultsBySurvey, 
+  getUncompletedResultBySurveyAndUser, 
+  getResultItemByWebLinkAndName,
+  postResult, 
+  updateResult, 
+  getResultById, 
+  postManualResult 
+} = require('../database/results');
 
 var router = express.Router();
 
@@ -35,11 +44,15 @@ const getResultByIdProc = (req, res, next) => {
 }
 
 const getResultProc = (req, res, next) => {
-  const survey_id = req.query.survey;
-  const ip_address = req.query.ip;
   const user_id = req.jwtUser.id;
 
-  getUncompletedResultBySurveyAndUser(survey_id, user_id)
+  const survey_id = req.query.survey;
+  const ip_address = req.query.ip;
+  const weblink_link_id = req.query.weblink_link;
+  const name = req.query.name;
+
+  if (!weblink_link_id) {
+    getUncompletedResultBySurveyAndUser(survey_id, user_id)
     .then(result => {
       if (result !== null) {
         res.status(200).json(result);
@@ -63,18 +76,58 @@ const getResultProc = (req, res, next) => {
         code: "result/get-uncompleted-error",
         message: "It couldn't get the result."
       });
-    })
+    });
+  } else {
+    getResultItemByWebLinkAndName(weblink_link_id, name, ip_address)
+      .then(result => {
+        if (result != null) {
+          res.status(200).json(result);
+        } else {
+          postResult(survey_id, null, ip_address, {}, 0, false, weblink_link_id, null, null, name)
+            .then(result => {
+              res.status(200).json(result);
+            })
+            .catch(err => {
+              console.log(err);
+              res.status(500).json({
+                code: "result/post-error",
+                message: "It couldn't get the result."
+              });
+            });
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(500).json({
+          code: "result/get-result-by-weblink-and-name-error",
+          message: "It couldn't get the result."
+        });
+      });
+  }
+  
 }
 
 // For only weblink/emaillink
 const postResultProc = (req, res, next) => {
-  const {survey_id, result, ip_address, time_spent} = req.body;
+  const {survey_id, result, ip_address, time_spent, weblink_link_id, emaillink_link_id, emaillink_contact_id, is_completed} = req.body;
 
-  postResult(survey_id, null, ip_address, result, time_spent, true)
+  postResult(survey_id, null, ip_address, result, time_spent, is_completed, weblink_link_id, emaillink_link_id, emaillink_contact_id)
     .then(result => {
-      if (req.body.link_id) {
+      if (emaillink_link_id) {
+        setResultOnEmailContact(emaillink_contact_id, result.id)
+          .then(emaillink_contact => {
+            res.status(200).json(result);
+          })
+          .catch(err => {
+            console.log(err);
+            res.status(500).json({
+              code: "result/post-error",
+              message: "It couldn't post the result."
+            });
+          })
+      } else {
+        res.status(200).json(result);
       }
-      res.status(200).json(result);
     })
     .catch(err => {
       console.log(err);

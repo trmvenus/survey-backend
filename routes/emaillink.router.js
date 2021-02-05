@@ -13,7 +13,7 @@ const {
   setSendingFlag, 
 } = require('../database/emaillinks');
 const { defaultContactsFilePath } = require('../constants/defaultValues');
-const { createEmailLinkContacts, getEmailLinkContactsByLinkId, setContactStatus, getEmailLinkContactByLinkIdAndEmail, setEmailOpenById } = require('../database/emaillinks_contacts');
+const { createEmailLinkContacts, getEmailLinkContactsByLinkId, setContactStatus, getEmailLinkContactByLinkIdAndEmail, setEmailOpenById, checkIfContactExist } = require('../database/emaillinks_contacts');
 
 var router = express.Router();
 
@@ -352,6 +352,31 @@ const trackEmailProc = (req, res, next) => {
     })
 }
 
+const checkEmailProc = (req, res, next) => {
+  const link_id = req.query.share;
+  const email_address = req.query.email;
+
+  checkIfContactExist(link_id, email_address)
+    .then (contact => {
+      if (contact) {
+        res.json(contact);
+      } else {
+        res.status(401).send({
+          code: "emaillink_contact/not-found-contact",
+          message: "This email has not been invited",
+        });
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(401).send({
+        code: "emaillink_contact/check-error",
+        message: "This email has not been invited",
+      });
+    })
+}
+
+router.get('/check', checkEmailProc);
 router.get('/:id/email-logo.jpg', trackEmailProc);
 router.get('/:id/send', sendEmailProc);
 router.get('/:id', getEmailLinkProc);
