@@ -7,10 +7,12 @@ const {
   getUserByEmail,
   getUserById,
   resetPassword,
+  updateUserNameById,
 } = require('../database/users');
 const forgotPasswordEmail = require('../mail-template/forgot-password');
 const crypt = require('../core/encryption');
 const { sendMail } = require('../core/mailer');
+const { updateUserProfileById, getUserProfileById } = require('../database/users_profiles');
 
 require('dotenv').config();
 
@@ -230,7 +232,63 @@ const getCurrentUserProc = (req, res, next) => {
     })
 }
 
+const getCurrentUserProfileProc = (req, res, next) => {
+  const user_id = req.jwtUser.id;
+
+  getUserProfileById(user_id)
+    .then(user_profile => {
+      res.json(user_profile);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(401).json({
+        code: "auth/get-user-profile-error",
+        message: "It couldn't get your profile.",
+      });
+    })
+}
+
+const updateCurrentUserProc = (req, res, next) => {
+  const {
+    name, 
+    location,
+    birthday,
+    gender,
+    short_description,
+    long_description,
+  } = req.body;
+
+  const user_id = req.jwtUser.id;
+
+  updateUserNameById(user_id, name)
+    .then(user => {
+      updateUserProfileById(user_id, {location, birthday, gender, short_description, long_description})
+        .then(user_profile => {
+          res.json({
+            name,
+            ...user_profile,
+          });
+        })
+        .catch(err => {
+          console.log(err);
+          res.status(401).json({
+            code: "auth/update-user-profile-error",
+            message: "It couldn't update your profile.",
+          });
+        });
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(401).json({
+        code: "auth/update-username-error",
+        message: "It couldn't update your profile.",
+      });
+    })
+}
+
+router.get('/me/profile', getCurrentUserProfileProc);
 router.get('/me', getCurrentUserProc);
+router.put('/me', updateCurrentUserProc);
 router.get('/login', loginUserProc);
 router.post('/signup', registerUserProc);
 router.get('/forgot-password', forgotPasswordProc);

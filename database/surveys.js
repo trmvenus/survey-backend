@@ -20,6 +20,27 @@ const createSurvey = async (name, user_id, category_id) => {
     return null;
 }
 
+const getAllSurveys = async (user_id) => {
+  const results = await pool.query(`
+      SELECT
+        *
+        , CASE WHEN category_id IS NULL THEN '' ELSE (SELECT name FROM categories WHERE surveys.category_id=categories.id) END AS category
+        , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id) AS responses
+        , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id AND results.user_id=$1) AS myresponses
+        , (SELECT name FROM users WHERE surveys.user_id = users.id) AS creator_name
+      FROM
+        surveys 
+      WHERE 
+        is_deleted=false 
+      ORDER BY 
+        created_at DESC 
+    `, [user_id]);
+  if (results.rows)
+    return results.rows;
+  else
+    return [];
+}
+
 const getMySurveys = async (user_id) => {
   const results = await pool.query(`
       SELECT
@@ -27,6 +48,7 @@ const getMySurveys = async (user_id) => {
         , CASE WHEN category_id IS NULL THEN '' ELSE (SELECT name FROM categories WHERE surveys.category_id=categories.id) END AS category
         , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id) AS responses
         , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id AND results.user_id=$1) AS myresponses
+        , (SELECT name FROM users WHERE surveys.user_id = users.id) AS creator_name
       FROM
         surveys 
       WHERE 
@@ -161,6 +183,7 @@ const setMutliResponsesSurvey = async (survey_id) => {
 
 module.exports = {
   createSurvey,
+  getAllSurveys,
   getMySurveys,
   getSharedSurveys,
   getSurveyById,

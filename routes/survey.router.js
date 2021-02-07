@@ -9,17 +9,35 @@ var {
   copySurveys, 
   shareSurvey,
   activeSurvey,
-  setMutliResponsesSurvey} = require('../database/surveys');
+  setMutliResponsesSurvey,
+  getAllSurveys} = require('../database/surveys');
 var {copyResultsBySurvey, getResultDatesBySurvey} = require('../database/results');
 const { getWebLinkByLinkId } = require('../database/weblinks');
 const { getEmailLinkByLinkId } = require('../database/emaillinks');
+const { requiresAdmin } = require('./router.common');
 
 var router = express.Router();
 
-const getSurveyListProc = (req, res, next) => {
+const getMySurveyListProc = (req, res, next) => {
   const user_id = req.jwtUser.id;
 
   getMySurveys(user_id)
+    .then(surveys => {
+      res.status(200).json(surveys);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "survey/fetch-my-list-error",
+        message: "It couldn't fetch my surveys.",
+      });
+    })
+};
+
+const getAllSurveyListProc = (req, res, next) => {
+  const user_id = req.jwtUser.id;
+
+  getAllSurveys(user_id)
     .then(surveys => {
       res.status(200).json(surveys);
     })
@@ -374,12 +392,13 @@ router.post('/copy', copySurveysProc);
 router.get('/shared', getSharedSurveyListProc);
 router.get('/w/share', getSurveyByWebLinkProc);
 router.get('/e/share', getSurveyByEmailLinkProc);
+router.get('/all', requiresAdmin, getAllSurveyListProc);
 router.put('/:id/share', shareSurveyProc);
 router.put('/:id/active', activeSurveyProc);
 router.put('/:id/multi-responses', setMultiResponsesSurveyProc);
 router.get('/:id', getSurveyProc);
 router.put('/:id', updateSurveyProc);
-router.get('/', getSurveyListProc);
+router.get('/', getMySurveyListProc);
 router.post('/', addSurveyProc);
 router.delete('/', deleteSurveysProc);
 

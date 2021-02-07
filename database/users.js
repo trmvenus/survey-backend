@@ -59,15 +59,17 @@ const resetPassword = async(email, newPassword) => {
 		UPDATE users SET password=$2 WHERE email=$1 RETURNING *
 	`, [email, newPassword]);
 
-	if (results.rows && results.rows.length > 0)
-		return results.rows[0];
-	else
-		return null;
+	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
+}
+
+const updateUserNameById = async(user_id, name) => {
+	const results = await pool.query(`UPDATE users SET name=$2 WHERE id=$1 RETURNING *`, [user_id, name]);
+	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
 }
 
 const updateUserPermission = async (user_id, method) => {
 	const results = await pool.query(`UPDATE users SET ${method} = NOT ${method} WHERE id=$1 RETURNING *`, [user_id]);
-	return results.rows[0];
+	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
 }
 
 const updateUserOrganization = async (user_id, organization_id) => {
@@ -85,24 +87,18 @@ const updateUserOrganization = async (user_id, organization_id) => {
 			id, organization_id, (SELECT name FROM organizations WHERE id=$2) as organization_name
 		`, [user_id, organization_id]);
 
-	if (results.rows && results.rows.length > 0)
-		return results.rows[0];
-	else
-		return null;
+	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
 }
 
 const activateUser = async (user_id, is_active) => {
 	const results = await pool.query(`UPDATE users SET is_active = NOT is_active WHERE id=$1 RETURNING *`, [user_id]);
-	return results.rows[0];
+	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
 }
 
 const deleteUsers = async (ids) => {
 	const results = await pool.query('UPDATE users SET is_deleted=true WHERE id = ANY($1::uuid[]) RETURNING id', [ids]);
 
-	if (results.rows && results.rows.length > 0)
-		return results.rows;
-	else
-		return [];
+	return (results.rows && results.rows.length > 0) ? results.rows : [];
 }
 
 module.exports = {
@@ -113,6 +109,7 @@ module.exports = {
 	getUsersWithFilter,
 	getCountOfUsers,
 	resetPassword,
+	updateUserNameById,
 	updateUserPermission,
 	updateUserOrganization,
 	activateUser,
