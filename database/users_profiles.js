@@ -6,7 +6,7 @@ const getUserProfileById = async (user_id) => {
 		SELECT * FROM users_profiles WHERE user_id=$1
 	`, [user_id]);
 
-	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
+	return (results.rows && results.rows.length > 0) ? results.rows[0] : {};
 }
 
 const updateUserProfileById = async (user_id, {location, birthday, gender, short_description, long_description}) => {
