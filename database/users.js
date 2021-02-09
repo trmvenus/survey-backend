@@ -67,6 +67,11 @@ const updateUserNameById = async(user_id, name) => {
 	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
 }
 
+const updateUserPasswordById = async(user_id, password) => {
+	const results = await pool.query(`UPDATE users SET password=$2 WHERE id=$1 RETURNING *`, [user_id, password]);
+	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
+}
+
 const updateUserPermission = async (user_id, method) => {
 	const results = await pool.query(`UPDATE users SET ${method} = NOT ${method} WHERE id=$1 RETURNING *`, [user_id]);
 	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
@@ -110,6 +115,7 @@ module.exports = {
 	getCountOfUsers,
 	resetPassword,
 	updateUserNameById,
+	updateUserPasswordById,
 	updateUserPermission,
 	updateUserOrganization,
 	activateUser,

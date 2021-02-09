@@ -8,6 +8,7 @@ const {
   getUserById,
   resetPassword,
   updateUserNameById,
+  updateUserPasswordById,
 } = require('../database/users');
 const forgotPasswordEmail = require('../mail-template/forgot-password');
 const crypt = require('../core/encryption');
@@ -286,6 +287,34 @@ const updateCurrentUserProc = (req, res, next) => {
     })
 }
 
+const updatePasswordProc = (req, res, next) => {
+  const {password} = req.body;
+  const user_id = req.jwtUser.id;
+
+  updateUserPasswordById(user_id, password)
+    .then(user => {
+      if (user) {
+        console.log(user);
+        res.json({
+          password: user.password,
+        });
+      } else {
+        res.status(401).json({
+          code: "auth/not-found-user",
+          message: "It couldn't udpate your password",
+        });
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(401).json({
+        code: "auth/update-password-error",
+        message: "It couldn't update your password.",
+      });
+    })
+
+}
+
 router.get('/me/profile', getCurrentUserProfileProc);
 router.get('/me', getCurrentUserProc);
 router.put('/me', updateCurrentUserProc);
@@ -293,5 +322,6 @@ router.get('/login', loginUserProc);
 router.post('/signup', registerUserProc);
 router.get('/forgot-password', forgotPasswordProc);
 router.post('/reset-password', resetPasswordProc);
+router.put('/password', updatePasswordProc);
 
 module.exports = router;
