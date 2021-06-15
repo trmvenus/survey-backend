@@ -114,6 +114,7 @@ const registerUserProc = (req, res, next) => {
 const forgotPasswordProc = (req, res, next) => {
   const {email} = req.query;
 
+  console.log("forgotPassword-->>>",email)
   getUserByEmail(email)
   .then(async user => {
     if (user) {

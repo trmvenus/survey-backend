@@ -1,5 +1,5 @@
 var express = require('express');
-var {createCategory, getMyCategories} = require('../database/categories');
+var {createCategory, getMyCategories, deleteCategory, updateCategory} = require('../database/categories');
 
 var router = express.Router();
 
@@ -42,4 +42,36 @@ router.post('/', (req, res, next) => {
     });
 });
 
+router.delete('/', (req, res, next) => {
+  const { id } = req.body
+  const user_id = req.jwtUser.id
+  console.log("req---category-delete-->>",id)
+  deleteCategory(id, user_id)
+    .then(category => {
+      if(category){
+        res.status(200).json(category)
+      } else{
+        res.status(200).json({
+          code: "category/delete-error",
+          message: "It couldn't delete this category."
+        })
+      }
+    })
+})
+
+router.put('/', (req, res, next) => {
+  const { id, name } =req.body
+  console.log("req.body-->>",res.body)
+  updateCategory(id,name)
+    .then(category => {
+      if(category) {
+        res.status(200).json(category)
+      } else{
+        res.status(200).json({
+            code: "category/update-error",
+            message: "It couldn't update this category."
+          })
+      }
+    })
+})
 module.exports = router;
