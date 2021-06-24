@@ -114,13 +114,11 @@ const registerUserProc = (req, res, next) => {
 const forgotPasswordProc = (req, res, next) => {
   const {email} = req.query;
 
-  console.log("forgotPassword-->>>",email)
   getUserByEmail(email)
   .then(async user => {
     if (user) {
       const resetPasswordLink = process.env.FRONTEND_URL + `/user/reset-password?token=` + crypt.encrypt(user.email);
 
-      console.log(resetPasswordLink);
 
       var mailOptions = {
         from: 'SurveyWizardSite <noreply@surveywizardsite.com>',

@@ -44,6 +44,20 @@ const getUsersWithFilter = async (pageSize, currentPage, orderBy, search) => {
 	return results.rows;
 }
 
+const getResearcher = async () => {
+	const results = await pool.query(`
+			SELECT * FROM users WHERE is_deleted=false AND role=3
+	`);
+	let result = []
+	let index=0
+	results.rows.forEach(user=>{
+		
+		result.push({label: user.name,value: user.name})
+		index++
+	})
+	return result;
+}
+
 const getCountOfUsers = async (search) => {
 	const results = await pool.query(`
         SELECT count(id) as count FROM users WHERE POSITION($1 in LOWER(name)) > 0 AND is_deleted=false
@@ -120,4 +134,5 @@ module.exports = {
 	updateUserOrganization,
 	activateUser,
 	deleteUsers,
+	getResearcher
 };

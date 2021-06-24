@@ -7,14 +7,32 @@ var {
   activateUser, 
   createUserWithEmailAndPassword, 
   deleteUsers,
+  getResearcher
 } = require('../database/users');
 
 var router = express.Router();
 
 const getUsersProc = (req, res, next) => {
   const {pageSize, currentPage, orderBy, search} = req.query;
-  
-  getUsersWithFilter(+pageSize, +currentPage, orderBy, search)
+
+  if(pageSize=='xxx') {
+    getResearcher()
+      .then(users => {
+        res.json({
+          data:users,
+          totalCount:10,
+          totalCount:10,
+        })
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(500).json({
+          code: 'users/get-users-error',
+          message: "It couldn't get users.",
+        })
+      });
+  } else{
+    getUsersWithFilter(+pageSize, +currentPage, orderBy, search)
     .then(users => {
       getCountOfUsers(search)
         .then(count => {
@@ -32,6 +50,9 @@ const getUsersProc = (req, res, next) => {
         message: "It couldn't get users.",
       })
     });
+  }
+  
+  
 }
 
 const updatePermissionProc = (req, res, next) => {

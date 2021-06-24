@@ -35,9 +35,7 @@ const sendMail = (mailOptions) => {
                 resolve(false);
             } else {
                 console.log('Email sent: ' + info.response);
-                
-                console.log("info ===> ");
-                console.log(info);
+               
                 resolve(true);
             }
         });
