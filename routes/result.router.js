@@ -88,7 +88,7 @@ const getResultProc = (req, res, next) => {
             getIsMultiple(survey_id,weblink_link_id)
             .then(weblink=>{
               console.log("weblink-->>",weblink)
-              if(weblink?.is_multiple){
+              if( weblink&&weblink.is_multiple){
                 console.log("weblink-->>>",weblink)
                 if(weblink.close_quota){
                   getResponseCount(survey_id,weblink_link_id)
