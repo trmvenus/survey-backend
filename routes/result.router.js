@@ -7,7 +7,9 @@ var {
   postResult, 
   updateResult, 
   getResultById, 
-  postManualResult 
+  postManualResult,
+  getIsMultiple,
+  getResponseCount
 } = require('../database/results');
 
 var router = express.Router();
@@ -81,8 +83,62 @@ const getResultProc = (req, res, next) => {
     getResultItemByWebLinkAndName(weblink_link_id, name, ip_address)
       .then(result => {
         if (result != null) {
-          res.status(200).json(result);
+          console.log("result-->>>",result)
+          if(result.is_completed==true){
+            getIsMultiple(survey_id,weblink_link_id)
+            .then(weblink=>{
+              console.log("weblink-->>",weblink)
+              if(weblink?.is_multiple){
+                console.log("weblink-->>>",weblink)
+                if(weblink.close_quota){
+                  getResponseCount(survey_id,weblink_link_id)
+                  .then(count=>{
+                    console.log("count----->>>>",count)
+                    if(count==null||count<weblink.close_quota){
+                      postResult(survey_id, null, ip_address, {}, 0, false, weblink_link_id, null, null, name)
+                      .then(result => {
+                        res.status(200).json(result);
+                      })
+                      .catch(err => {
+                        console.log(err);
+                        res.status(500).json({
+                          code: "result/post-error",
+                          message: "It couldn't get the result."
+                        });
+                      });
+                    } else{
+                      res.status(500).json({
+                        success: false,
+                        code: "survey/maxim-quota",
+                        message: "Survey reseached the maximum number of respondants."
+                      });
+                    }
+                  })
+    
+                }else{
+                  postResult(survey_id, null, ip_address, {}, 0, false, weblink_link_id, null, null, name)
+                  .then(result => {
+                    res.status(200).json(result);
+                  })
+                  .catch(err => {
+                    console.log(err);
+                    res.status(500).json({
+                      code: "result/post-error",
+                      message: "It couldn't get the result."
+                    });
+                  });
+                }
+                
+              }else{
+                res.status(200).json(result);
+              }
+            })
+            
+          } else{
+            res.status(200).json(result);
+          }
         } else {
+          console.log("--------------------------------")
           postResult(survey_id, null, ip_address, {}, 0, false, weblink_link_id, null, null, name)
             .then(result => {
               res.status(200).json(result);

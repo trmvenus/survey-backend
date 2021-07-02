@@ -29,7 +29,7 @@ const getResultDatesBySurvey = async (survey_id) => {
   const results =
     await pool.query(`
       SELECT 
-        TO_CHAR(created_at, 'YYYY-MM-DD') AS created_at
+        created_at
       FROM
         results 
       WHERE 
@@ -39,7 +39,7 @@ const getResultDatesBySurvey = async (survey_id) => {
     `, [survey_id]);
 
   if (results.rows && results.rows.length > 0)
-    return results.rows;
+    return results.rows.map(row =>row.created_at.toString());
   else
     return [];
 }
@@ -48,7 +48,7 @@ const getResultDatesBySurveyCreator = async (creator_id) => {
   const results =
     await pool.query(`
     SELECT
-      TO_CHAR(results.created_at, 'YYYY-MM-DD') AS created_at
+       results.created_at
     FROM 
       results
       LEFT JOIN surveys
@@ -60,7 +60,7 @@ const getResultDatesBySurveyCreator = async (creator_id) => {
     `, [creator_id]);
 
   if (results.rows && results.rows.length > 0)
-    return results.rows.map(row => row.created_at);
+    return results.rows.map(row =>row.created_at.toString());
   else
     return [];
 }
@@ -122,7 +122,7 @@ const getResultItemByWebLinkAndName = async (weblink_link_id, respondent_name, i
       FROM
         results
       WHERE
-        weblink_link_id=$1 AND respondent_name=$2 AND ip_address=$3
+        weblink_link_id=$1 AND respondent_name=$2 AND ip_address=$3 ORDER BY created_at DESC LIMIT(1)
     `, [weblink_link_id, respondent_name, ip_address]);
 
   if (results.rows && results.rows.length > 0)
@@ -218,6 +218,31 @@ const copyResultsBySurvey = async (old_survey_id, new_survey_id) => {
     return [];
 }
 
+const getIsMultiple = async (survey_id,weblink_link_id) => {
+  const results = await pool.query(`
+    SELECT is_multiple, close_quota FROM weblinks WHERE  survey_id=$1 AND link_id=$2
+  `, [survey_id,weblink_link_id]);
+  console.log("jkjkdjfkdjf=======>>>",results)
+  if (results.rows && results.rows.length >0){
+    console.log("getIsMultiple-----",results.rows)
+    return results.rows[0];}
+  else
+   return [];
+  
+}
+
+const getResponseCount = async (survey_id, weblink_link_id) => {
+  console.log("suvery_id--->>>",survey_id,weblink_link_id)
+  const results = await pool.query(`
+      SELECT COUNT(id) AS count FROM results WHERE survey_id=$1 AND weblink_link_id=$2
+  `,[survey_id, weblink_link_id]);
+  console.log("count-->>",results)
+  if(results.rows && results.rows.length>0){
+    return results.rows[0].count
+  }else{
+    return [];
+  }
+}
 module.exports = {
   getResultsBySurvey,
   getResultDatesBySurvey,
@@ -229,5 +254,7 @@ module.exports = {
   postResult,
   postManualResult,
   updateResult,
-  copyResultsBySurvey
+  copyResultsBySurvey,
+  getIsMultiple,
+  getResponseCount
 };

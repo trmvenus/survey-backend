@@ -12,7 +12,6 @@ const getWebLinksBySurvey = async (survey_id) => {
       ORDER BY
         created_at ASC
     `, [survey_id]);
-
     if (results.rows && results.rows.length > 0)
       return results.rows;
     else
@@ -29,15 +28,15 @@ const getWebLinkByLinkId = async (link_id) => {
       return null;
 }
 
-const createWebLink = async (name, survey_id, user_id, link_id, close_quota, close_date, is_active) => {
+const createWebLink = async (name, survey_id, user_id, link_id, close_quota, close_date, is_active, is_multiple) => {
   const results = 
     await pool.query(`
       INSERT INTO 
         weblinks
-        (name, survey_id, user_id, link_id, close_quota, close_date, is_active)
+        (name, survey_id, user_id, link_id, close_quota, close_date, is_active, is_multiple)
       VALUES
-        ($1, $2, $3, $4, $5, $6, $7) 
-      RETURNING *`, [name, survey_id, user_id, link_id, close_quota, close_date, is_active]);
+        ($1, $2, $3, $4, $5, $6, $7, $8) 
+      RETURNING *`, [name, survey_id, user_id, link_id, close_quota, close_date, is_active, is_multiple]);
 
   if (results.rows && results.rows.length > 0)
     return results.rows[0];
@@ -55,16 +54,16 @@ const deleteWebLink = async (weblink_id) => {
     return null;
 }
 
-const updateWebLink = async (weblink_id, name, close_quota, close_date, is_active) => {
+const updateWebLink = async (weblink_id, name, close_quota, close_date, is_active, is_multiple) => {
   const results = 
     await pool.query(`
     UPDATE 
       weblinks 
     SET 
-      name=$2, close_quota=$3, close_date=$4, is_active=$5
+      name=$2, close_quota=$3, close_date=$4, is_active=$5, is_multiple=$6
     WHERE 
       id=$1 
-    RETURNING *`, [weblink_id, name, close_quota, close_date, is_active]);
+    RETURNING *`, [weblink_id, name, close_quota, close_date, is_active, is_multiple]);
 
   if (results.rows && results.rows.length > 0)
     return results.rows[0];

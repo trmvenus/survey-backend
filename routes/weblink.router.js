@@ -26,14 +26,16 @@ const addWebLinkProc = (req, res, next) => {
     close_quota,
     close_date,
     is_active,
+    is_multiple
   } = req.body;
+  console.log("req--",req.body)
 
   close_quota = close_quota.length ? close_quota : null;
   close_date = close_date.length ? close_date : null;
 
   const user_id = req.jwtUser.id;
 
-  createWebLink(name, survey_id, user_id, link_id, close_quota, close_date, is_active)
+  createWebLink(name, survey_id, user_id, link_id, close_quota, close_date, is_active, is_multiple)
     .then(webLink => {
       if (webLink) {
         res.status(200).json(webLink); 
@@ -60,12 +62,13 @@ const updateWebLinkProc = (req, res, next) => {
     close_quota,
     close_date,
     is_active,
+    is_multiple
   } = req.body;
-
-  close_quota = close_quota.length ? close_quota : null;
+  console.log("req--",req.body)
+  close_quota = close_quota? close_quota : null;
   close_date = close_date.length ? close_date : null;
 
-  updateWebLink(webLink_id, name, close_quota, close_date, is_active)
+  updateWebLink(webLink_id, name, close_quota, close_date, is_active, is_multiple)
   .then (webLink => {
     if (webLink) {
       res.status(200).json(webLink); 

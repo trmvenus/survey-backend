@@ -104,7 +104,7 @@ const getSurveyById = async (survey_id, user_id) => {
 const getSurveyDatesByCreator = async (user_id) => {
   const results = await pool.query(`
     SELECT
-      TO_CHAR(created_at, 'YYYY-MM-DD') AS created_at
+      created_at
     FROM 
       surveys
     WHERE 
@@ -114,7 +114,7 @@ const getSurveyDatesByCreator = async (user_id) => {
   `, [user_id]);
 
   if (results.rows && results.rows.length > 0)
-    return results.rows.map(row => row.created_at);
+    return results.rows.map(row => row.created_at.toString());
   else
     return [];
 }
