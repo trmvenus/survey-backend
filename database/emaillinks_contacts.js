@@ -117,6 +117,58 @@ const setResultOnEmailContact = async (id, result_id) => {
     return null;
 }
 
+const getEmailLinksCompletedResponses = async(survey_id) => {
+  const results = 
+    await pool.query(`
+        SELECT COUNT(id) as count,max(emaillink_link_id) as emailLink
+        FROM 
+          results 
+        WHERE 
+          survey_id=$1 AND is_completed=TRUE
+        GROUP BY 
+          emaillink_link_id
+    `, [survey_id]);
+    console.log(results)
+    if(results.rows && results.rows.length >0){
+      let resultsTemp={}
+      for (let row of results.rows){
+        if(row.emailLink){
+          resultsTemp[row.emailLink]=row.count
+        }
+      }
+      return resultsTemp;
+    } 
+    else{
+      return [];
+    }
+}
+
+const getEmailLinksTotalResponses = async(survey_id) => {
+  const results = 
+  await pool.query(`
+      SELECT COUNT(id) as count,max(emaillink_link_id) as emaillink
+      FROM 
+        results 
+      WHERE 
+        survey_id=$1
+      GROUP BY 
+        emaillink_link_id
+  `, [survey_id]);
+  console.log(results)
+  if(results.rows && results.rows.length >0){
+    let resultsTemp={}
+    for (let row of results.rows){
+      if(row.emaillink){
+        resultsTemp[row.emaillink]=row.count
+      }
+    }
+    return resultsTemp;
+  } 
+  else{
+    return [];
+  }
+}
+
 module.exports = {
   createEmailLinkContacts,
   getEmailLinkContactsByLinkId,
@@ -126,4 +178,6 @@ module.exports = {
   setEmailOpenById,
   checkIfContactExist,
   setResultOnEmailContact,
+  getEmailLinksCompletedResponses,
+  getEmailLinksTotalResponses
 };

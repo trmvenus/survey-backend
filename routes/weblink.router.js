@@ -1,5 +1,5 @@
 const express = require('express');
-const { getWebLinksBySurvey, createWebLink, updateWebLink, deleteWebLink, } = require('../database/weblinks');
+const { getWebLinksBySurvey, createWebLink, updateWebLink, deleteWebLink,getWebLinksCompletedResponses,getWebLinksTotalResponses } = require('../database/weblinks');
 
 var router = express.Router();
 
@@ -7,7 +7,27 @@ const getWebLinksProc = (req, res, next) => {
   const {survey} = req.query;
   getWebLinksBySurvey(survey)
   .then(webLinks => {
-    res.status(200).json(webLinks);
+    getWebLinksCompletedResponses(survey)
+    .then(weblinksCompletedResponse => {
+      getWebLinksTotalResponses(survey)
+      .then(webLinksTotalResponses=>{
+        res.status(200).json({webLinks:webLinks,webLinksTotalResponses:webLinksTotalResponses,weblinksCompletedResponse:weblinksCompletedResponse});
+      })
+      .catch(err => {
+        console.log(err)
+        res.status(500).json({
+        code: "weblink/fetch-error",
+        message: "It couldn't fetch all weblinks.",
+      });
+      })
+    })
+    .catch(err=>{
+      console.log(err)
+      res.status(500).json({
+        code: "weblink/fetch-error",
+        message: "It couldn't fetch all weblinks.",
+      });
+    })
   })
   .catch(err => {
     console.log(err);
@@ -28,7 +48,6 @@ const addWebLinkProc = (req, res, next) => {
     is_active,
     is_multiple
   } = req.body;
-  console.log("req--",req.body)
 
   close_quota = close_quota.length ? close_quota : null;
   close_date = close_date.length ? close_date : null;

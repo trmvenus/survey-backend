@@ -222,9 +222,7 @@ const getIsMultiple = async (survey_id,weblink_link_id) => {
   const results = await pool.query(`
     SELECT is_multiple, close_quota FROM weblinks WHERE  survey_id=$1 AND link_id=$2
   `, [survey_id,weblink_link_id]);
-  console.log("jkjkdjfkdjf=======>>>",results)
   if (results.rows && results.rows.length >0){
-    console.log("getIsMultiple-----",results.rows)
     return results.rows[0];}
   else
    return [];

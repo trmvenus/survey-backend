@@ -26,7 +26,9 @@ const getAllSurveys = async (user_id) => {
         *
         , CASE WHEN category_id IS NULL THEN '' ELSE (SELECT name FROM categories WHERE surveys.category_id=categories.id) END AS category
         , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id) AS responses
+        , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id AND results.is_completed=TRUE) AS completedresponses
         , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id AND results.user_id=$1) AS myresponses
+        , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id AND results.user_id=$1 AND results.is_completed=TRUE) AS completedmyresponses
         , (SELECT name FROM users WHERE surveys.user_id = users.id) AS creator_name
       FROM
         surveys 

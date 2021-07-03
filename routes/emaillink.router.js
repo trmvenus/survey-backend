@@ -13,7 +13,7 @@ const {
   setSendingFlag, 
 } = require('../database/emaillinks');
 const { defaultContactsFilePath } = require('../constants/defaultValues');
-const { createEmailLinkContacts, getEmailLinkContactsByLinkId, setContactStatus, getEmailLinkContactByLinkIdAndEmail, setEmailOpenById, checkIfContactExist } = require('../database/emaillinks_contacts');
+const { createEmailLinkContacts, getEmailLinkContactsByLinkId, setContactStatus, getEmailLinkContactByLinkIdAndEmail, setEmailOpenById, checkIfContactExist,getEmailLinksCompletedResponses,getEmailLinksTotalResponses } = require('../database/emaillinks_contacts');
 
 var router = express.Router();
 
@@ -21,7 +21,20 @@ const getEmailLinksProc = (req, res, next) => {
   const {survey} = req.query;
   getEmailLinksBySurvey(survey)
   .then(emailLinks => {
-    res.status(200).json(emailLinks);
+    getEmailLinksCompletedResponses(survey)
+    .then(emailLinksCompletedResponse=>{
+      getEmailLinksTotalResponses(survey) 
+      .then(emailLinksTotalResponses=>{
+        res.status(200).json({emailLinks:emailLinks,emailLinksCompletedResponse:emailLinksCompletedResponse,emailLinksTotalResponses:emailLinksTotalResponses})
+      })
+    })
+    .catch(err=>{
+      console.log(err)
+      res.status(500).json({
+        code: "emaillink/fetch-error",
+        message: "It couldn't fetch all emaillinks.",
+      });
+    })
   })
   .catch(err => {
     console.log(err);
