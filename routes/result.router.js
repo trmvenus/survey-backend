@@ -1,5 +1,7 @@
 var express = require('express');
 const { setResultOnEmailContact } = require('../database/emaillinks_contacts');
+const puppeteer = require('puppeteer');
+const path = require('path');
 var { 
   getResultsBySurvey, 
   getUncompletedResultBySurveyAndUser, 
@@ -11,7 +13,7 @@ var {
   getIsMultiple,
   getResponseCount
 } = require('../database/results');
-
+const { verify } = require('../core/verify-token');
 var router = express.Router();
 
 const getResultListProc = (req, res, next) => {
@@ -226,12 +228,59 @@ const updateResultProc = (req, res, next) => {
       });
     })
 };
+async function pdf(uri, req) {
+  const {url} = req.body
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(url, {waitUntil: 'networkidle2'});
+  await page.type('#email', 'uaenic@gmail.com');
+  await page.type('#password', 'Mm@3062011');
+  await page.click('#login');
+  await page.waitForNavigation();
 
+  // Get cookies
+  const cookies = await page.cookies();
+
+  // Use cookies in other tab or browser
+  const page2 = await browser.newPage();
+  await page2.setCookie(...cookies);
+  const filename = `public/PerformanceReport-${4}.pdf`;
+  await page2.goto(url, {waitUntil: 'networkidle2'});
+
+  await page2.emulateMediaType('screen');
+  let div_selector_to_remove= [".sidebar",".navbar",".separator-tabs",".export",".chart-container",".theme-button"];
+  await page2.evaluate((selP) => {
+    for(let sel of selP){
+      console.log(sel)
+      var elements = document.querySelectorAll(sel);
+      for(var i=0; i< elements.length; i++){
+          elements[i].parentNode.removeChild(elements[i]);
+      }
+    }
+     
+  }, div_selector_to_remove)  
+  await page2.pdf({path: filename, format: 'A4', landscape: false, printBackground: true, margin: {
+    left: '0',
+    right: '0',
+    top: '20',
+    bottom: '20'
+  }});
+
+  await browser.close();
+  return filename;
+}
+const pdfExport =async (req, res, next) => {
+    const token=verify(req);
+    const filename = await pdf('', req);
+    console.log(filename)
+    res.contentType("application/pdf");
+    res.sendFile(path.join(__dirname, `../${filename}`)); 
+}
 router.get('/list', getResultListProc);
 router.post('/manual', postManualResultProc);
 router.get('/:id', getResultByIdProc);
 router.get('/', getResultProc);
 router.post('/', postResultProc);
 router.put('/', updateResultProc);
-
+router.post('/pdfff',pdfExport)
 module.exports = router;

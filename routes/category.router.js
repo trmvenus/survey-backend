@@ -45,7 +45,6 @@ router.post('/', (req, res, next) => {
 router.delete('/', (req, res, next) => {
   const { id } = req.body
   const user_id = req.jwtUser.id
-  console.log("req---category-delete-->>",id)
   deleteCategory(id, user_id)
     .then(category => {
       if(category){
