@@ -128,7 +128,6 @@ const getEmailLinksCompletedResponses = async(survey_id) => {
         GROUP BY 
           emaillink_link_id
     `, [survey_id]);
-    console.log(results)
     if(results.rows && results.rows.length >0){
       let resultsTemp={}
       for (let row of results.rows){
@@ -154,7 +153,6 @@ const getEmailLinksTotalResponses = async(survey_id) => {
       GROUP BY 
         emaillink_link_id
   `, [survey_id]);
-  console.log(results)
   if(results.rows && results.rows.length >0){
     let resultsTemp={}
     for (let row of results.rows){
@@ -169,6 +167,41 @@ const getEmailLinksTotalResponses = async(survey_id) => {
   }
 }
 
+const addContactByLink_id = async(link_id, email, firstname, lastname) => {
+  const results=await pool.query(`
+      INSERT INTO emaillinks_contacts(link_id, email_address, first_name, last_name) VALUES ($1,$2,$3,$4) RETURNING *
+  `,[link_id,email, firstname, lastname])
+  if(results.rows && results.rows.length >0){
+    
+    return results.rows;
+  } 
+  else{
+    return [];
+  }
+}
+
+const deleteConactByLink_idAndEmail = async(link_id,email)=> {
+  const results = await pool.query(`
+      DELETE FROM emaillinks_contacts WHERE link_id=$1 AND email_address=$2
+  `,[link_id,email])
+  if(results.rows && results.rows.length >0) {
+    return results.rows
+  } else{
+    return []
+  }
+}
+
+const updateContactByIdAndLink_id = async(id, link_id, email, firstname, lastname) =>{
+  const results = await pool.query(`
+      UPDATE emaillinks_contacts 
+      SET email_address=$1,first_name=$2, last_name=$3 WHERE id=$4 AND link_id=$5
+  `,[email, firstname, lastname, id, link_id])
+  if(results.rows && results.rows.length >0) {
+    return results.rows
+  } else{
+    return []
+  }
+}
 module.exports = {
   createEmailLinkContacts,
   getEmailLinkContactsByLinkId,
@@ -179,5 +212,8 @@ module.exports = {
   checkIfContactExist,
   setResultOnEmailContact,
   getEmailLinksCompletedResponses,
-  getEmailLinksTotalResponses
+  getEmailLinksTotalResponses,
+  addContactByLink_id,
+  deleteConactByLink_idAndEmail,
+  updateContactByIdAndLink_id
 };

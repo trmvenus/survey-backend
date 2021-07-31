@@ -83,7 +83,6 @@ const updateWebLinkProc = (req, res, next) => {
     is_active,
     is_multiple
   } = req.body;
-  console.log("req--",req.body)
   close_quota = close_quota? close_quota : null;
   close_date = close_date.length ? close_date : null;
 

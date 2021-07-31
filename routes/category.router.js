@@ -59,8 +59,7 @@ router.delete('/', (req, res, next) => {
 })
 
 router.put('/', (req, res, next) => {
-  const { id, name } =req.body
-  console.log("req.body-->>",res.body)
+  const { id, name } =req.body;
   updateCategory(id,name)
     .then(category => {
       if(category) {

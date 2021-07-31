@@ -230,11 +230,9 @@ const getIsMultiple = async (survey_id,weblink_link_id) => {
 }
 
 const getResponseCount = async (survey_id, weblink_link_id) => {
-  console.log("suvery_id--->>>",survey_id,weblink_link_id)
   const results = await pool.query(`
       SELECT COUNT(id) AS count FROM results WHERE survey_id=$1 AND weblink_link_id=$2
   `,[survey_id, weblink_link_id]);
-  console.log("count-->>",results)
   if(results.rows && results.rows.length>0){
     return results.rows[0].count
   }else{

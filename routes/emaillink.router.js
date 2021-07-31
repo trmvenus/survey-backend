@@ -13,7 +13,7 @@ const {
   setSendingFlag, 
 } = require('../database/emaillinks');
 const { defaultContactsFilePath } = require('../constants/defaultValues');
-const { createEmailLinkContacts, getEmailLinkContactsByLinkId, setContactStatus, getEmailLinkContactByLinkIdAndEmail, setEmailOpenById, checkIfContactExist,getEmailLinksCompletedResponses,getEmailLinksTotalResponses } = require('../database/emaillinks_contacts');
+const { createEmailLinkContacts, getEmailLinkContactsByLinkId, setContactStatus, getEmailLinkContactByLinkIdAndEmail, setEmailOpenById, checkIfContactExist,getEmailLinksCompletedResponses,getEmailLinksTotalResponses ,addContactByLink_id,deleteConactByLink_idAndEmail,updateContactByIdAndLink_id} = require('../database/emaillinks_contacts');
 
 var router = express.Router();
 
@@ -47,7 +47,6 @@ const getEmailLinksProc = (req, res, next) => {
 
 const getEmailLinkProc = (req, res, next) => {
   const id = req.params.id;
-
   getEmailLinkById(id)
     .then(emailLink => {
       if (emailLink) {
@@ -389,13 +388,153 @@ const checkEmailProc = (req, res, next) => {
     })
 }
 
+const addContactProc = (req, res, next) => {
+  const {emaillink_id, link_id, email, firstname, lastname } = req.body
+  addContactByLink_id(link_id, email, firstname, lastname)
+    .then(contact => {
+      getEmailLinkById(emaillink_id)
+      .then(emailLink => {
+        if (emailLink) {
+          getEmailLinkContactsByLinkId(emailLink.link_id)
+            .then(contacts => {
+              res.json({
+                ...emailLink,
+                contacts,
+              });
+            })
+            .catch(err => {
+              console.log(err);
+              res.status(500).json({
+                code: "emaillink_contacts/get-contacts",
+                message: "It couldn't get the link by id.",
+              });
+            })
+        } else {
+          res.status(500).json({
+            code: "emaillink/not-found",
+            message: "It couldn't get the link by id.",
+          });
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(500).json({
+          code: "emaillink/fetch-error",
+          message: "It couldn't get the link by id.",
+        });
+      })
+    })
+    .catch(err =>{
+      console.log(err);
+      res.status(500).send({
+        code:'contact/add-error',
+        message: "It couldn't add the contact."
+      })
+    })
+}
+
+const deleteContactProc =(req,res, next) =>{
+  const {id,link_id, contact } = req.body;
+  deleteConactByLink_idAndEmail(link_id, contact)
+    .then(contact=>{
+      getEmailLinkById(id)
+      .then(emailLink => {
+        if (emailLink) {
+          getEmailLinkContactsByLinkId(emailLink.link_id)
+            .then(contacts => {
+              res.json({
+                ...emailLink,
+                contacts,
+              });
+            })
+            .catch(err => {
+              console.log(err);
+              res.status(500).json({
+                code: "emaillink_contacts/get-contacts",
+                message: "It couldn't get the link by id.",
+              });
+            })
+        } else {
+          res.status(500).json({
+            code: "emaillink/not-found",
+            message: "It couldn't get the link by id.",
+          });
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(500).json({
+          code: "emaillink/fetch-error",
+          message: "It couldn't get the link by id.",
+        });
+      })
+    })
+    .catch(err=>{
+      console.log(err)
+      res.status(500).send({
+        code:'contact/delete-error',
+        message:"It couldn't delete this contact."
+      })
+    })
+}
+
+const updateContactProc= (req, res, next) => {
+  const id = req.params.id;
+  const {emaillink_id, link_id, email, firstname, lastname } = req.body;
+  updateContactByIdAndLink_id(id, link_id, email, firstname, lastname)
+    .then(contact=>{
+      getEmailLinkById(emaillink_id)
+      .then(emailLink => {
+        if (emailLink) {
+          getEmailLinkContactsByLinkId(emailLink.link_id)
+            .then(contacts => {
+              res.json({
+                ...emailLink,
+                contacts,
+              });
+            })
+            .catch(err => {
+              console.log(err);
+              res.status(500).json({
+                code: "emaillink_contacts/get-contacts",
+                message: "It couldn't get the link by id.",
+              });
+            })
+        } else {
+          res.status(500).json({
+            code: "emaillink/not-found",
+            message: "It couldn't get the link by id.",
+          });
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(500).json({
+          code: "emaillink/fetch-error",
+          message: "It couldn't get the link by id.",
+        });
+      })
+    })
+    .catch(err => {
+      console.log(err)
+      res.status(500).send({
+        code:'contact/update-error',
+        message:"It couldn't update this contact."
+      })
+    })
+  
+}
+
 router.get('/check', checkEmailProc);
 router.get('/:id/email-logo.jpg', trackEmailProc);
 router.get('/:id/send', sendEmailProc);
-router.get('/:id', getEmailLinkProc);
+router.post('/:id', getEmailLinkProc);
 router.put('/:id', updateEmailLinkProc);
 router.delete('/:id', deleteEmailLinkProc);
 router.get('/', getEmailLinksProc);
 router.post('/', addEmailLinkProc);
+router.post('/contact/add',addContactProc);
+router.delete('/contact/delete',deleteContactProc);
+router.put('/contact/:id',updateContactProc)
 
 module.exports = router;

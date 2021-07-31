@@ -30,7 +30,6 @@ const getWebLinksCompletedResponses = async (survey_id) => {
         GROUP BY 
           weblink_link_id
     `, [survey_id]);
-    console.log(results)
     if(results.rows && results.rows.length >0){
       let resultsTemp={}
       for (let row of results.rows){
@@ -56,7 +55,6 @@ const getWebLinksTotalResponses = async (survey_id) => {
         GROUP BY 
           weblink_link_id
     `, [survey_id]);
-    console.log(results)
     if(results.rows && results.rows.length >0){
       let resultsTemp={}
       for (let row of results.rows){
