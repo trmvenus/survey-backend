@@ -55,6 +55,7 @@ const getReportByShareId = async (share_id) => {
 }
 
 const createReport = async (name, survey_id, user_id, type, filter, sections) => {
+  console.log("data->>", name, survey_id, user_id, type, filter, sections)
   const results = 
     await pool.query(`
       INSERT INTO 

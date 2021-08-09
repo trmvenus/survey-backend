@@ -2,19 +2,23 @@ const pool = require('./pool');
 const format = require('pg-format');
 
 const createEmailLinkContacts = async (rows) => {
-  const results = 
-    await pool.query(format(`
+  console.log("hello:", rows)
+  if (rows.length > 0) {
+    const results =
+      await pool.query(format(`
       INSERT INTO emaillinks_contacts(link_id, email_address, first_name, last_name) VALUES %L RETURNING *
     `, rows), []);
 
-  if (results.rows && results.rows.length > 0)
-    return results.rows;
-  else
-    return [];
+    if (results.rows && results.rows.length > 0)
+      return results.rows;
+    else
+      return [];
+  }
+  else return [];
 }
 
 const getEmailLinkContactsByLinkId = async (link_id) => {
-  const results = 
+  const results =
     await pool.query(`
       SELECT 
         *,
@@ -34,7 +38,7 @@ const getEmailLinkContactsByLinkId = async (link_id) => {
 }
 
 const getEmailLinkContactByLinkIdAndEmail = async (link_id, email) => {
-  const results = 
+  const results =
     await pool.query(`
       SELECT
         *,
@@ -52,7 +56,7 @@ const getEmailLinkContactByLinkIdAndEmail = async (link_id, email) => {
 }
 
 const setContactStatus = async (id, status) => {
-  const results = 
+  const results =
     await pool.query(`
       UPDATE emaillinks_contacts SET status=$2 WHERE id=$1 RETURNING *
     `, [id, status ? 'sent' : 'failed']);
@@ -64,7 +68,7 @@ const setContactStatus = async (id, status) => {
 }
 
 const setResponded = async (id, is_responded) => {
-  const results = 
+  const results =
     await pool.query(`
       UPDATE emaillinks_contacts SET is_responded=$2 WHERE id=$1 RETURNING *
     `, [id, is_responded]);
@@ -76,7 +80,7 @@ const setResponded = async (id, is_responded) => {
 }
 
 const setEmailOpenById = async (id) => {
-  const results = 
+  const results =
     await pool.query(`
       UPDATE emaillinks_contacts SET is_open=true WHERE id=$1 RETURNING *
     `, [id]);
@@ -88,7 +92,7 @@ const setEmailOpenById = async (id) => {
 }
 
 const checkIfContactExist = async (link_id, email_address) => {
-  const results = 
+  const results =
     await pool.query(`
       SELECT 
         *,
@@ -106,7 +110,7 @@ const checkIfContactExist = async (link_id, email_address) => {
 }
 
 const setResultOnEmailContact = async (id, result_id) => {
-  const results = 
+  const results =
     await pool.query(`
       UPDATE emaillinks_contacts SET result_id=$2, is_responded=true WHERE id=$1 RETURNING *
     `, [id, result_id]);
@@ -117,8 +121,8 @@ const setResultOnEmailContact = async (id, result_id) => {
     return null;
 }
 
-const getEmailLinksCompletedResponses = async(survey_id) => {
-  const results = 
+const getEmailLinksCompletedResponses = async (survey_id) => {
+  const results =
     await pool.query(`
         SELECT COUNT(id) as count,max(emaillink_link_id) as emailLink
         FROM 
@@ -128,23 +132,23 @@ const getEmailLinksCompletedResponses = async(survey_id) => {
         GROUP BY 
           emaillink_link_id
     `, [survey_id]);
-    if(results.rows && results.rows.length >0){
-      let resultsTemp={}
-      for (let row of results.rows){
-        if(row.emailLink){
-          resultsTemp[row.emailLink]=row.count
-        }
+  if (results.rows && results.rows.length > 0) {
+    let resultsTemp = {}
+    for (let row of results.rows) {
+      if (row.emailLink) {
+        resultsTemp[row.emailLink] = row.count
       }
-      return resultsTemp;
-    } 
-    else{
-      return [];
     }
+    return resultsTemp;
+  }
+  else {
+    return [];
+  }
 }
 
-const getEmailLinksTotalResponses = async(survey_id) => {
-  const results = 
-  await pool.query(`
+const getEmailLinksTotalResponses = async (survey_id) => {
+  const results =
+    await pool.query(`
       SELECT COUNT(id) as count,max(emaillink_link_id) as emaillink
       FROM 
         results 
@@ -153,52 +157,52 @@ const getEmailLinksTotalResponses = async(survey_id) => {
       GROUP BY 
         emaillink_link_id
   `, [survey_id]);
-  if(results.rows && results.rows.length >0){
-    let resultsTemp={}
-    for (let row of results.rows){
-      if(row.emaillink){
-        resultsTemp[row.emaillink]=row.count
+  if (results.rows && results.rows.length > 0) {
+    let resultsTemp = {}
+    for (let row of results.rows) {
+      if (row.emaillink) {
+        resultsTemp[row.emaillink] = row.count
       }
     }
     return resultsTemp;
-  } 
-  else{
+  }
+  else {
     return [];
   }
 }
 
-const addContactByLink_id = async(link_id, email, firstname, lastname) => {
-  const results=await pool.query(`
+const addContactByLink_id = async (link_id, email, firstname, lastname) => {
+  const results = await pool.query(`
       INSERT INTO emaillinks_contacts(link_id, email_address, first_name, last_name) VALUES ($1,$2,$3,$4) RETURNING *
-  `,[link_id,email, firstname, lastname])
-  if(results.rows && results.rows.length >0){
-    
+  `, [link_id, email, firstname, lastname])
+  if (results.rows && results.rows.length > 0) {
+
     return results.rows;
-  } 
-  else{
+  }
+  else {
     return [];
   }
 }
 
-const deleteConactByLink_idAndEmail = async(link_id,email)=> {
+const deleteConactByLink_idAndEmail = async (link_id, email) => {
   const results = await pool.query(`
       DELETE FROM emaillinks_contacts WHERE link_id=$1 AND email_address=$2
-  `,[link_id,email])
-  if(results.rows && results.rows.length >0) {
+  `, [link_id, email])
+  if (results.rows && results.rows.length > 0) {
     return results.rows
-  } else{
+  } else {
     return []
   }
 }
 
-const updateContactByIdAndLink_id = async(id, link_id, email, firstname, lastname) =>{
+const updateContactByIdAndLink_id = async (id, link_id, email, firstname, lastname) => {
   const results = await pool.query(`
       UPDATE emaillinks_contacts 
       SET email_address=$1,first_name=$2, last_name=$3 WHERE id=$4 AND link_id=$5
-  `,[email, firstname, lastname, id, link_id])
-  if(results.rows && results.rows.length >0) {
+  `, [email, firstname, lastname, id, link_id])
+  if (results.rows && results.rows.length > 0) {
     return results.rows
-  } else{
+  } else {
     return []
   }
 }

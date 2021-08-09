@@ -47,7 +47,7 @@ const addReportProc = (req, res, next) => {
     .then(report => {
       if (report) {
         res.status(200).json(report); 
-      } else {
+      } else {        
         res.status(500).json({
           code: "report/create-error",
           message: "It couldn't create new report.",
