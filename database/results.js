@@ -58,7 +58,26 @@ const getResultDatesBySurveyCreator = async (creator_id) => {
     ORDER BY
       results.id DESC
     `, [creator_id]);
+  console.log("myTotalResponses->>", results.rows)
+  if (results.rows && results.rows.length > 0)
+    return results.rows.map(row =>row.created_at.toString());
+  else
+    return [];
+}
 
+const getResultDates = async () => {
+  const results =
+    await pool.query(`
+    SELECT
+       results.created_at
+    FROM 
+      results
+      LEFT JOIN surveys
+      ON results.survey_id = surveys.id
+    ORDER BY
+      results.id DESC
+    `);
+  console.log("totalResponses->>", results.rows.length)
   if (results.rows && results.rows.length > 0)
     return results.rows.map(row =>row.created_at.toString());
   else
@@ -77,6 +96,26 @@ const getCompletedResponsesBySurveyCreator = async (creator_id) => {
     WHERE 
       surveys.user_id=$1 AND is_completed=true
     `, [creator_id]);
+    console.log("count->>", results.rows[0].count)
+  if (results.rows && results.rows.length > 0)
+    return results.rows[0].count;
+  else
+    return 0;
+}
+
+const getCompletedResponses = async () => {
+  const results =
+    await pool.query(`
+    SELECT
+      count(results.id) as count
+    FROM 
+      results
+      LEFT JOIN surveys
+      ON results.survey_id = surveys.id
+    WHERE 
+      is_completed=true
+    `);
+    console.log("completed responses->>", results.rows[0].count)
   if (results.rows && results.rows.length > 0)
     return results.rows[0].count;
   else
@@ -239,6 +278,18 @@ const getResponseCount = async (survey_id, weblink_link_id) => {
     return [];
   }
 }
+
+const deleteResult = async (id) => {
+  const results = await pool.query(`
+      DELETE FROM results WHERE id=$1
+  `, [id])
+  if (results.rows && results.rows.length > 0) {
+    return results.rows
+  } else {
+    return []
+  }
+}
+
 module.exports = {
   getResultsBySurvey,
   getResultDatesBySurvey,
@@ -252,5 +303,8 @@ module.exports = {
   updateResult,
   copyResultsBySurvey,
   getIsMultiple,
-  getResponseCount
+  getResponseCount,
+  getResultDates,
+  getCompletedResponses,
+  deleteResult
 };

@@ -1,27 +1,30 @@
 var express = require('express');
 var {
-  getUsersWithFilter, 
-  getCountOfUsers, 
-  updateUserPermission, 
+  getUsersWithFilter,
+  getCountOfUsers,
+  updateUserPermission,
   updateUserOrganization,
-  activateUser, 
-  createUserWithEmailAndPassword, 
+  activateUser,
+  createUserWithEmailAndPassword,
   deleteUsers,
-  getResearcher
+  getResearcher,
+  updateUserById,
+  updateUserPasswordById,
+  getUserById
 } = require('../database/users');
 
 var router = express.Router();
 
 const getUsersProc = (req, res, next) => {
-  const {pageSize, currentPage, orderBy, search} = req.query;
+  const { pageSize, currentPage, orderBy, search } = req.query;
 
-  if(pageSize=='xxx') {
+  if (pageSize == 'xxx') {
     getResearcher()
       .then(users => {
         res.json({
-          data:users,
-          totalCount:10,
-          totalCount:10,
+          data: users,
+          totalCount: 10,
+          totalCount: 10,
         })
       })
       .catch(err => {
@@ -31,35 +34,35 @@ const getUsersProc = (req, res, next) => {
           message: "It couldn't get users.",
         })
       });
-  } else{
+  } else {
     getUsersWithFilter(+pageSize, +currentPage, orderBy, search)
-    .then(users => {
-      getCountOfUsers(search)
-        .then(count => {
-          res.json({
-            data: users,
-            totalCount: count,
-            totalPage: (count-1)/pageSize+1,
-          });
-        })
-    })
-    .catch(err => {
-      console.log(err);
-      res.status(500).json({
-        code: 'users/get-users-error',
-        message: "It couldn't get users.",
+      .then(users => {
+        getCountOfUsers(search)
+          .then(count => {
+            res.json({
+              data: users,
+              totalCount: count,
+              totalPage: (count - 1) / pageSize + 1,
+            });
+          })
       })
-    });
+      .catch(err => {
+        console.log(err);
+        res.status(500).json({
+          code: 'users/get-users-error',
+          message: "It couldn't get users.",
+        })
+      });
   }
-  
-  
+
+
 }
 
 const updatePermissionProc = (req, res, next) => {
   const user_id = req.body.user;
   const method = req.body.method;
 
-  if(['p_create', 'p_view', 'p_edit', 'p_copy', 'p_delete'].includes(method)) {
+  if (['p_create', 'p_view', 'p_edit', 'p_copy', 'p_delete'].includes(method)) {
     updateUserPermission(user_id, method)
       .then(user => {
         res.json({});
@@ -96,7 +99,8 @@ const activateUserProc = (req, res, next) => {
 }
 
 const addUserProc = (req, res, next) => {
-  const {name, email, password, role} = req.body;
+  console.log(req.body);
+  const { name, email, password, role } = req.body;
 
   createUserWithEmailAndPassword(name, email, password, role)
     .then(result => {
@@ -141,7 +145,7 @@ const deleteUsersProc = (req, res, next) => {
 
 const changeOrganizationProc = (req, res, next) => {
   const user_id = req.params.id;
-  const {organization_id} = req.body;
+  const { organization_id } = req.body;
 
   updateUserOrganization(user_id, organization_id)
     .then(user => {
@@ -157,11 +161,72 @@ const changeOrganizationProc = (req, res, next) => {
     })
 }
 
+const updateUserProc = (req, res, next) => {
+  // const user_id = req.params.id;
+  const { user_id, name, email, role, organization_id } = req.body;
+  updateUserById(user_id, name, email, role, organization_id)
+    .then(user => {
+      if (user) {
+        res.json(user);
+      } else {
+        console.log(err);
+        res.status(500).json({
+          code: "users/update-error",
+          message: "It couldn't update the user.",
+        });
+      }
+    })
+}
+
+const changePasswordProc = (req, res, next) => {
+  const user_id = req.params.id;
+  const { originalPassword, newPassword } = req.body;
+  getUserById(user_id)
+    .then(user => {
+      if (user.password != originalPassword) {
+        res.status(500).json({
+          code: "users/update-error",
+          message: "Original Password is not equal to your password.",
+        });
+      }
+      else if (user) {
+        updateUserPasswordById(user_id, newPassword)
+          .then(newUser => {
+            if (newUser) {
+              res.json(newUser);
+            }
+          })
+          .catch(err => {
+            console.log(err);
+            res.status(500).json({
+              code: "users/reset-error",
+              message: "It couldn't reset password.",
+            });
+          })
+      } else {
+        console.log(err);
+        res.status(500).json({
+          code: "users/update-error",
+          message: "It couldn't reset the password.",
+        });
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        code: "users/update-error",
+        message: "not found the user.",
+      });
+    })
+}
+
 router.put('/permission', updatePermissionProc);
 router.put('/:id/active', activateUserProc);
 router.put('/:id/organization', changeOrganizationProc);
+router.post('/update', updateUserProc)
 router.get('/', getUsersProc);
 router.post('/', addUserProc);
 router.delete('/', deleteUsersProc);
+router.put('/:id/reset', changePasswordProc)
 
 module.exports = router;

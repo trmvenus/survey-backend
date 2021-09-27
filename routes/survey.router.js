@@ -1,17 +1,18 @@
 var express = require('express');
 var {
-  createSurvey, 
-  getMySurveys, 
+  createSurvey,
+  getMySurveys,
   getSharedSurveys,
-  getSurveyById, 
-  updateSurvey, 
-  deleteSurveys, 
-  copySurveys, 
+  getSurveyById,
+  updateSurvey,
+  deleteSurveys,
+  copySurveys,
   shareSurvey,
   activeSurvey,
   setMutliResponsesSurvey,
-  getAllSurveys} = require('../database/surveys');
-var {copyResultsBySurvey, getResultDatesBySurvey} = require('../database/results');
+  getAllSurveys,
+  updateStyleBySurveyId } = require('../database/surveys');
+var { copyResultsBySurvey, getResultDatesBySurvey } = require('../database/results');
 const { getWebLinkByLinkId } = require('../database/weblinks');
 const { getEmailLinkByLinkId } = require('../database/emaillinks');
 const { requiresAdmin } = require('./router.common');
@@ -67,15 +68,15 @@ const getSharedSurveyListProc = (req, res, next) => {
 }
 
 const addSurveyProc = (req, res, next) => {
-  var {title, category} = req.body;
+  var { title, category } = req.body;
   const user_id = req.jwtUser.id;
 
   if (!category.length) category = null;
 
   createSurvey(title, user_id, category)
     .then(survey => {
-      if (survey) { 
-        res.status(200).json(survey); 
+      if (survey) {
+        res.status(200).json(survey);
       } else {
         res.status(500).json({
           code: "survey/create-error",
@@ -96,11 +97,11 @@ const deleteSurveysProc = (req, res, next) => {
   const surveys_ids = req.body.ids;
 
   if (surveys_ids.length == 0) {
-    res.status(200).json({ids: []});
+    res.status(200).json({ ids: [] });
   } else {
     deleteSurveys(surveys_ids)
       .then(() => {
-        res.status(200).json({ids: surveys_ids})
+        res.status(200).json({ ids: surveys_ids })
       })
       .catch(err => {
         console.log(err);
@@ -218,64 +219,64 @@ const getSurveyByEmailLinkProc = (req, res, next) => {
   const emaillink_id = req.query.id;
 
   getEmailLinkByLinkId(emaillink_id)
-  .then(emaillink => {
-    if (emaillink) {
-      if (emaillink.close_date) {
-        const close_date = new Date(emaillink.close_date);
-        const today_date = new Date();
-        if (today_date > close_date) {
-          res.json({
-            success: false,
-            code: "survey/over-deadline",
-            message: "The deadline has passed."
-          });
-          return;
+    .then(emaillink => {
+      if (emaillink) {
+        if (emaillink.close_date) {
+          const close_date = new Date(emaillink.close_date);
+          const today_date = new Date();
+          if (today_date > close_date) {
+            res.json({
+              success: false,
+              code: "survey/over-deadline",
+              message: "The deadline has passed."
+            });
+            return;
+          }
         }
-      }
-      getSurveyById(emaillink.survey_id, null)
-      .then(survey => {
-        if (survey.is_deleted) {
-          res.json({
-            success: false,
-            code: "survey/deleted-survey",
-            message: "This survey was deleted.",
-          });
-        } else {
-          res.json({
-            success: true,
-            survey,
+        getSurveyById(emaillink.survey_id, null)
+          .then(survey => {
+            if (survey.is_deleted) {
+              res.json({
+                success: false,
+                code: "survey/deleted-survey",
+                message: "This survey was deleted.",
+              });
+            } else {
+              res.json({
+                success: true,
+                survey,
+              })
+            }
           })
-        }
-      })
-      .catch(err => {
-        console.log(err);
-        res.status(401).json({
-          code: "survey/fetch-error",
-          message: "It couldn't fetch the survey.",
+          .catch(err => {
+            console.log(err);
+            res.status(401).json({
+              code: "survey/fetch-error",
+              message: "It couldn't fetch the survey.",
+            });
+          });
+      } else {
+        res.json({
+          success: false,
+          code: "survey/not-found-email-link",
+          message: "It couldn't find the survey."
         });
-      });
-    } else {
-      res.json({
-        success: false,
-        code: "survey/not-found-email-link",
-        message: "It couldn't find the survey."
+        return null;
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      res.status(401).json({
+        code: "survey/fetch-emaillink-error",
+        message: "It couldn't fetch the survey."
       });
       return null;
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    res.status(401).json({
-      code: "survey/fetch-emaillink-error",
-      message: "It couldn't fetch the survey."
     });
-    return null;
-  });
 }
 
 const updateSurveyProc = (req, res, next) => {
   const survey_id = req.params.id;
-  const {json} = req.body;
+  const { json } = req.body;
 
   updateSurvey(survey_id, json)
     .then(survey => {
@@ -314,7 +315,7 @@ const copySurveysProc = (req, res, next) => {
         });
 
         if (with_responses === true) {
-          for (let i = 0; i < surveys_ids.length; i ++) {
+          for (let i = 0; i < surveys_ids.length; i++) {
             const survey_id = surveys_ids[i];
             await copyResultsBySurvey(survey_id, surveys[i].id)
               .then((results) => {
@@ -361,7 +362,8 @@ const shareSurveyProc = (req, res, next) => {
 const activeSurveyProc = (req, res, next) => {
   const survey_id = req.params.id;
   activeSurvey(survey_id)
-    .then(survey => {http://localhost:3000/share/e/run?id=gxblsppv
+    .then(survey => {
+      http://localhost:3000/share/e/run?id=gxblsppv
       res.status(200).json(survey);
     })
     .catch(err => {
@@ -388,6 +390,22 @@ const setMultiResponsesSurveyProc = (req, res, next) => {
     })
 }
 
+const updateStyleSurveyProc = (req, res, next) => {
+ console.log(req.body)
+ const { id, tColor, fontSize, fontFamily, bold, italic, underline } = req.body;
+ updateStyleBySurveyId(id, tColor, fontSize, fontFamily, bold, italic, underline)
+   .then(survey => {
+     res.status(200).json(survey)
+   })
+   .catch(err => {
+     console.log(err);
+     res.status(500).json({
+       code: "survey/update-style-error",
+       message: "It couldn't update style of survey."
+     })
+   })
+}
+
 router.post('/copy', copySurveysProc);
 router.get('/shared', getSharedSurveyListProc);
 router.get('/w/share', getSurveyByWebLinkProc);
@@ -401,6 +419,7 @@ router.put('/:id', updateSurveyProc);
 router.get('/', getMySurveyListProc);
 router.post('/', addSurveyProc);
 router.delete('/', deleteSurveysProc);
+router.post('/style', updateStyleSurveyProc);
 
 
 module.exports = router;

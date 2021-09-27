@@ -234,32 +234,17 @@ const updateEmailLinkProc = (req, res, next) => {
     sender_email,
     close_quota,
     close_date,
-    contact_members
+    contact_members,
+    mode
   } = req.body;
 
   close_quota = close_quota.length ? close_quota : null;
   close_date = close_date.length ? close_date : null;
-  if (req.body.mode && req.body.mode == "sms") {
+  if (mode == "sms" || mode == "facebook" || mode == "twitter" || mode == "email") {
     updateEmailLink(emaillink_id, name, email_content, sender_name, sender_email, close_quota, close_date)
       .then(emailLink => {
-        if (emailLink) {
-          const contactRows = [];
-          for (let i = 0; i < contact_members.length; i++) {
-            contactRows.push([emailLink.link_id, contact_members[i].email_address, contact_members[i].first_name,
-            contact_members[i].last_name]);
-          }
-          createEmailLinkContacts(contactRows)
-            .then(linked_members => {
-              res.status(200).json(emailLink);
-            })
-            .catch(err => {
-              console.log(err);
-              res.status(500).json({
-                code: "emaillink-contacts/create-error",
-                message: "It couldn't update the email link.",
-              });
-            });
-
+        if (emailLink) {          
+          res.status(200).json(emailLink);
         } else {
           res.status(500).json({
             code: "emaillink/update-filter-error",
@@ -328,8 +313,6 @@ const sendEmailProc = (req, res, next) => {
     .then(link => {
       if (link) {
         if (email) {
-          if (link.contacts_file == 'sms')
-            email = "+" + email.trim();
           getEmailLinkContactByLinkIdAndEmail(link.link_id, email)
             .then(async contact => {
               const email_address = contact.email_address;
@@ -354,7 +337,7 @@ const sendEmailProc = (req, res, next) => {
                 var mailOptions = {
                   body: link.email_content,
                   from: process.env.SENDER_PHONE_NUMBER,
-                  to: email_address
+                  to: "+"+email_address.trim()
                 };
                 try {
                   const success = await sendMessage(mailOptions);
@@ -428,7 +411,7 @@ const sendEmailProc = (req, res, next) => {
                   var mailOptions = {
                     body: link.email_content,
                     from: process.env.SENDER_PHONE_NUMBER,
-                    to: email_address
+                    to: "+"+email_address.trim()
                   };
                   try {
                     const success = await sendMessage(mailOptions);
@@ -458,7 +441,7 @@ const sendEmailProc = (req, res, next) => {
 
                   try {
                     const success = await sendMail(mailOptions);
-
+                    console.log("success->>", success)
                     await setContactStatus(contact.id, success);
                   } catch (err) {
                     console.log(err);

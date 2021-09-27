@@ -6,7 +6,7 @@ const signInWithEmailAndPassword = async (email, password) => {
 }
 
 const createUserWithEmailAndPassword = async (name, email, password, role = 1,) => {
-	const results = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
+	var results = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
 	if (results.rows.length > 0) {
 		return { success: false };
 	} else {
@@ -19,7 +19,7 @@ const getUserByEmail = async (email) => {
 	const res = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
 	if (res.rows && res.rows.length > 0)
 		return res.rows[0];
-	else 
+	else
 		return null;
 }
 
@@ -27,7 +27,7 @@ const getUserById = async (user_id) => {
 	const res = await pool.query('SELECT * FROM users WHERE id=$1', [user_id]);
 	if (res.rows && res.rows.length > 0)
 		return res.rows[0];
-	else 
+	else
 		return null;
 }
 
@@ -49,10 +49,10 @@ const getResearcher = async () => {
 			SELECT * FROM users WHERE is_deleted=false AND role=3
 	`);
 	let result = []
-	let index=0
-	results.rows.forEach(user=>{
-		
-		result.push({label: user.name,value: user.name})
+	let index = 0
+	results.rows.forEach(user => {
+
+		result.push({ label: user.name, value: user.name })
 		index++
 	})
 	return result;
@@ -68,7 +68,7 @@ const getCountOfUsers = async (search) => {
 		return 0;
 }
 
-const resetPassword = async(email, newPassword) => {
+const resetPassword = async (email, newPassword) => {
 	const results = await pool.query(`
 		UPDATE users SET password=$2 WHERE email=$1 RETURNING *
 	`, [email, newPassword]);
@@ -76,12 +76,23 @@ const resetPassword = async(email, newPassword) => {
 	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
 }
 
-const updateUserNameById = async(user_id, name) => {
+const updateUserNameById = async (user_id, name) => {
 	const results = await pool.query(`UPDATE users SET name=$2 WHERE id=$1 RETURNING *`, [user_id, name]);
 	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
 }
 
-const updateUserPasswordById = async(user_id, password) => {
+const updateUserById = async (user_id, name, email, role, organization_id) => {
+	let results = [];
+	if (organization_id)
+		results = await pool.query(`UPDATE users SET name=$2, email=$3, role=$4, organization_id=$5 WHERE id=$1 RETURNING *`,
+			[user_id, name, email, role, 0]);
+	else
+		results = await pool.query(`UPDATE users SET name=$2, email=$3, role=$4 WHERE id=$1 RETURNING *`,
+			[user_id, name, email, role]);
+	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
+}
+
+const updateUserPasswordById = async (user_id, password) => {
 	const results = await pool.query(`UPDATE users SET password=$2 WHERE id=$1 RETURNING *`, [user_id, password]);
 	return (results.rows && results.rows.length > 0) ? results.rows[0] : null;
 }
@@ -134,5 +145,6 @@ module.exports = {
 	updateUserOrganization,
 	activateUser,
 	deleteUsers,
-	getResearcher
+	getResearcher,
+	updateUserById
 };

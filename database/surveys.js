@@ -49,6 +49,7 @@ const getMySurveys = async (user_id) => {
         *
         , CASE WHEN category_id IS NULL THEN '' ELSE (SELECT name FROM categories WHERE surveys.category_id=categories.id) END AS category
         , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id) AS responses
+        , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id AND results.is_completed=true) AS completedresponses
         , (SELECT count(results.id) FROM results WHERE surveys.id = results.survey_id AND results.user_id=$1) AS myresponses
         , (SELECT name FROM users WHERE surveys.user_id = users.id) AS creator_name
       FROM
@@ -121,6 +122,22 @@ const getSurveyDatesByCreator = async (user_id) => {
     return [];
 }
 
+const getSurveyDates = async () => {
+  const results = await pool.query(`
+    SELECT
+      created_at
+    FROM 
+      surveys
+    ORDER BY
+      id DESC
+  `);
+
+  if (results.rows && results.rows.length > 0)
+    return results.rows.map(row => row.created_at.toString());
+  else
+    return [];
+}
+
 const updateSurvey = async (survey_id, json) => {
   const results = await pool.query(`
     UPDATE surveys SET json = $1 WHERE id = $2 RETURNING *
@@ -183,6 +200,16 @@ const setMutliResponsesSurvey = async (survey_id) => {
     return null;
 }
 
+const updateStyleBySurveyId = async (survey_id, tColor, fontSize, fontFamily, bold, italic, underline) => {
+  const results = await pool.query(`
+    UPDATE surveys SET font_size=$2, color=$3, font_family=$4, bold=$5, italic=$6, underline=$7  WHERE id=$1  RETURNING *
+  `,[survey_id, fontSize, tColor,fontFamily, bold, italic, underline]);
+  if (results.rows && results.rows.length > 0)
+    return results.rows[0];
+  else
+    return null;
+}
+// UPDATE users SET name=$2, email=$3, role=$4, organization_id=$5 WHERE id=$1 RETURNING *`
 module.exports = {
   createSurvey,
   getAllSurveys,
@@ -196,4 +223,6 @@ module.exports = {
   shareSurvey,
   activeSurvey,
   setMutliResponsesSurvey,
+  getSurveyDates,
+  updateStyleBySurveyId
 };

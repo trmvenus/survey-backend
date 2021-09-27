@@ -38,6 +38,7 @@ const getEmailLinkContactsByLinkId = async (link_id) => {
 }
 
 const getEmailLinkContactByLinkIdAndEmail = async (link_id, email) => {
+  console.log("contact_data->>", link_id, email)
   const results =
     await pool.query(`
       SELECT
